@@ -1,14 +1,90 @@
-//#include <iostream>
 
-using namespace std;
 
-//#include <stdio.h>
-#include <stdbool.h>
-#include <windows.h>
+#include <string>
+
+#include <chrono>
+#include <thread>
 
 #include "INI.hpp"
 
-typedef struct
+using namespace std;
+
+#include <windows.h>
+#include "Signal.hpp"
+
+
+
+void fatal_error(const std::string&& text)
+{
+	MessageBox(NULL, text.c_str(), "Fatal Error", MB_OK);
+	std::terminate();
+}
+
+void key_down(int8_t code)
+{
+	INPUT inp;
+	inp.type = INPUT_KEYBOARD;
+	inp.ki.wScan = 0; // hardware scan code for key
+	inp.ki.time = 0;
+	inp.ki.dwExtraInfo = 0;
+
+	inp.ki.wVk = code; // virtual-key code
+	inp.ki.dwFlags = 0; // 0 for key press
+	SendInput(1, &inp, sizeof(INPUT));
+}
+
+void key_up(int8_t code)
+{
+	INPUT inp;
+	inp.type = INPUT_KEYBOARD;
+	inp.ki.wScan = 0; // hardware scan code for key
+	inp.ki.time = 0;
+	inp.ki.dwExtraInfo = 0;
+
+	inp.ki.wVk = code; // virtual-key code
+	inp.ki.dwFlags = KEYEVENTF_KEYUP; // 0 for key press
+	SendInput(1, &inp, sizeof(INPUT));
+}
+
+
+void key_tap(int8_t code, int64_t delay, int64_t duration)
+{
+	std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+	key_down(code);
+	std::this_thread::sleep_for(std::chrono::milliseconds(duration));
+	key_up(code);
+}
+
+HWND get_console_hwnd(void)
+{
+   static const auto titleBufferLen = 1024;
+
+   // Fetch current window title.
+   char oldWindowTitle[titleBufferLen];
+   GetConsoleTitle(oldWindowTitle, titleBufferLen);
+
+   // Format a "unique" NewWindowTitle.
+   char tempWindowTitle[titleBufferLen];
+   wsprintf(tempWindowTitle, "%d/%d", GetTickCount(), GetCurrentProcessId());
+
+   // Change current window title.
+   SetConsoleTitle(tempWindowTitle);
+
+   // Ensure window title has been updated.
+   Sleep(40);
+
+   // Look for NewWindowTitle.
+   auto hwndFound = FindWindow(NULL, tempWindowTitle);
+
+   // Restore original window title.
+   SetConsoleTitle(oldWindowTitle);
+
+   return(hwndFound);
+}
+
+
+
+struct XINPUT_GAMEPAD
 {
 	WORD  wButtons;
 	BYTE  bLeftTrigger;
@@ -17,210 +93,216 @@ typedef struct
 	SHORT sThumbLY;
 	SHORT xThumbRX;
 	SHORT xThumbRY;
-} XINPUT_GAMEPAD;
+};
 
-typedef struct
+struct XINPUT_STATE
 {
 	DWORD          dwPacketNumber;
 	XINPUT_GAMEPAD Gamepad;
-} XINPUT_STATE;
+};
 
-#include <chrono>
-#include <thread>
-
-void send_inp(int8_t code, int64_t delay, int64_t duration)
+struct PlayerSettings
 {
-	INPUT inp;
-	inp.type = INPUT_KEYBOARD;
-	inp.ki.wScan = 0; // hardware scan code for key
-	inp.ki.time = 0;
-	inp.ki.dwExtraInfo = 0;
+	int64_t key;
+	int64_t hold_mode;
+	int64_t longpress_key;
+	int64_t longpress_duration;
+	int64_t delay;
+};
 
-	std::this_thread::sleep_for(std::chrono::milliseconds(delay));
-
-	// Press the key
-	inp.ki.wVk = code; // virtual-key code for the key
-	inp.ki.dwFlags = 0; // 0 for key press
-	SendInput(1, &inp, sizeof(INPUT));
-
-	std::this_thread::sleep_for(std::chrono::milliseconds(duration));
-
-	// Release the key
-	inp.ki.dwFlags = KEYEVENTF_KEYUP; // KEYEVENTF_KEYUP for key release
-	SendInput(1, &inp, sizeof(INPUT));
+bool inline is_guide_down(XINPUT_STATE& state)
+{
+	return state.Gamepad.wButtons & 0x0400;
 }
 
-void send_inp_down(int8_t code)
+void print(int8_t v)
 {
-	INPUT inp;
-	inp.type = INPUT_KEYBOARD;
-	inp.ki.wScan = 0; // hardware scan code for key
-	inp.ki.time = 0;
-	inp.ki.dwExtraInfo = 0;
+	printf("%i", (int)v);
+}
 
-	inp.ki.wVk = code; // virtual-key code for the "a" key
-	inp.ki.dwFlags = 0; // 0 for key press
-	SendInput(1, &inp, sizeof(INPUT));
+void print(uint8_t v)
+{
+	printf("%u", (unsigned int)v);
+}
 
+void print(int16_t v)
+{
+	printf("%i", (int)v);
+}
+
+void print(uint16_t v)
+{
+	printf("%u", (unsigned int)v);
+}
+
+template <typename T>
+void println(T v)
+{
+	print(v);
+	printf("\n");
 
 }
 
-void send_inp_up(int8_t code)
+struct GlobalData
 {
-	INPUT inp;
-	inp.type = INPUT_KEYBOARD;
-	inp.ki.wScan = 0; // hardware scan code for key
-	inp.ki.time = 0;
-	inp.ki.dwExtraInfo = 0;
 
-	inp.ki.wVk = code; // virtual-key code for the "a" key
-	inp.ki.dwFlags = KEYEVENTF_KEYUP; // 0 for key press
-	SendInput(1, &inp, sizeof(INPUT));
-}
+	PlayerSettings settings[4];
+	handy::arch::Signal<void(int which)> guidePressed;
+	handy::arch::Signal<void(int which)> guideReleased;
 
-HWND GetConsoleHwnd(void)
-{
-   #define MY_BUFSIZE 1024 // Buffer size for console window titles.
-   HWND hwndFound;         // This is what is returned to the caller.
-   char pszNewWindowTitle[MY_BUFSIZE]; // Contains fabricated
-									   // WindowTitle.
-   char pszOldWindowTitle[MY_BUFSIZE]; // Contains original
-									   // WindowTitle.
 
-   // Fetch current window title.
+	// Singleton
+	static inline GlobalData& get()
+	{
+		static GlobalData dat;
+		return dat;
+	}
 
-   GetConsoleTitle(pszOldWindowTitle, MY_BUFSIZE);
+	void update()
+	{
+		for (int i = 0; i < 4; ++i)
+		{
+			XInputGetStateEx(i, &states[i]);
 
-   // Format a "unique" NewWindowTitle.
+			if ((is_guide_down(states[i])) && (!wasGuideDownPrev[i]))
+				guidePressed.call(i);
+			else if ((!is_guide_down(states[i])) && (wasGuideDownPrev[i]))
+				guideReleased.call(i);
 
-   wsprintf(pszNewWindowTitle,"%d/%d",
-			   GetTickCount(),
-			   GetCurrentProcessId());
+			wasGuideDownPrev[i] = is_guide_down(states[i]);
+		}
+	}
 
-   // Change current window title.
+private:
 
-   SetConsoleTitle(pszNewWindowTitle);
 
-   // Ensure window title has been updated.
+	XINPUT_STATE   states[4];
+	bool           wasGuideDownPrev[4];
+	typedef DWORD (__stdcall *XInputGetStateEx_t) (DWORD, XINPUT_STATE*);
+	XInputGetStateEx_t XInputGetStateEx;
 
-   Sleep(40);
+	HINSTANCE dll;
 
-   // Look for NewWindowTitle.
+	GlobalData()
+	{
+		dll = NULL;
 
-   hwndFound=FindWindow(NULL, pszNewWindowTitle);
+		TCHAR dll_path[MAX_PATH];
+		GetSystemDirectory(dll_path, sizeof(dll_path));
+		strcat(dll_path, "\\xinput1_3.dll");
+		dll = LoadLibrary(dll_path);
 
-   // Restore original window title.
+		if (!dll)
+			fatal_error("Error loading XInput DLL.");
 
-   SetConsoleTitle(pszOldWindowTitle);
+		XInputGetStateEx = (XInputGetStateEx_t)GetProcAddress(dll, (LPCSTR)100);
 
-   return(hwndFound);
-}
+		handy::io::INIFile ini;
+		if (!ini.loadFile("button2.ini"))
+			fatal_error("Couldn't load button2.ini");
+
+		settings[0].key                = ini.getInteger("player1", "key", 27);
+		settings[0].hold_mode          = ini.getInteger("player1", "hold_mode", 1);
+		settings[0].longpress_key      = ini.getInteger("player1", "longpress_key", 27);
+		settings[0].longpress_duration = ini.getInteger("player1", "longpress_duration", 1000);
+		settings[0].delay              = ini.getInteger("player1", "delay", 0);
+
+		settings[1].key                = ini.getInteger("player2", "key", 27);
+		settings[1].hold_mode          = ini.getInteger("player2", "hold_mode", 1);
+		settings[1].longpress_key      = ini.getInteger("player2", "longpress_key", 27);
+		settings[1].longpress_duration = ini.getInteger("player2", "longpress_duration", 1000);
+		settings[1].delay              = ini.getInteger("player2", "delay", 0);
+
+		settings[2].key                = ini.getInteger("player3", "key", 27);
+		settings[2].hold_mode          = ini.getInteger("player3", "hold_mode", 1);
+		settings[2].longpress_key      = ini.getInteger("player3", "longpress_key", 27);
+		settings[2].longpress_duration = ini.getInteger("player3", "longpress_duration", 1000);
+		settings[2].delay              = ini.getInteger("player3", "delay", 0);
+
+		settings[3].key                = ini.getInteger("player4", "key", 27);
+		settings[3].hold_mode          = ini.getInteger("player4", "hold_mode", 1);
+		settings[3].longpress_key      = ini.getInteger("player4", "longpress_key", 27);
+		settings[3].longpress_duration = ini.getInteger("player4", "longpress_duration", 1000);
+		settings[3].delay              = ini.getInteger("player4", "delay", 0);
+
+
+	}
+};
+
+#include "qsb.hpp"
+
+
+#include <stdio.h>
 
 int main()
 {
-	TCHAR dll_path[MAX_PATH];
-	GetSystemDirectory(dll_path, sizeof(dll_path));
-	strcat(dll_path, "\\xinput1_3.dll");
-	HINSTANCE xinputDll = LoadLibrary(dll_path);
+	GlobalData& d = GlobalData::get();
 
-	typedef DWORD (__stdcall *XInputGetStateEx_t) (DWORD, XINPUT_STATE*);
+	printf("Button on 360 guide v6, by pinumbernumber.\nWill minimise now\n\n");
+	Sleep(500);
+	ShowWindow(get_console_hwnd(), SW_MINIMIZE);
 
-	XInputGetStateEx_t XInputGetStateEx = (XInputGetStateEx_t) GetProcAddress(xinputDll, (LPCSTR)100);
+	typedef std::chrono::high_resolution_clock hrc;
 
-	XINPUT_STATE playerStates[4];
-	for (auto& state : playerStates)
-		ZeroMemory(&state, sizeof(XINPUT_STATE));
-
-//
-	bool wasPressedPrev[4] = {false,false,false,false};
+	auto now = hrc::now();
+	hrc::time_point guideDepressed[4] = {now,now,now,now};
 
 
 
-
-	printf("Escape on 360 guide button v5\nby pinumbernumber\nNow listening for player 1 guide button.\nThis window will now minimise.\n\n");
-
-	uint8_t whichKey[4];
-	int64_t delays[4];
-	int64_t durations[4];
-	bool    shouldHold[4];
-
-	int64_t minimiseDelay = 0;
-
+	d.guidePressed.connect([&](int i)
 	{
-		handy::io::INIFile ini;
-		ini.loadFile("button.ini");
-
-		whichKey[0] = ini.getInteger("config", "key_player1", 27);
-		whichKey[1] = ini.getInteger("config", "key_player2", 27);
-		whichKey[2] = ini.getInteger("config", "key_player3", 27);
-		whichKey[3] = ini.getInteger("config", "key_player4", 27);
-
-		delays[0] = ini.getInteger("config", "delay_player1", 0);
-		delays[1] = ini.getInteger("config", "delay_player2", 0);
-		delays[2] = ini.getInteger("config", "delay_player3", 0);
-		delays[3] = ini.getInteger("config", "delay_player4", 0);
-
-		durations[0] = ini.getInteger("config", "duration_player1", 0);
-		durations[1] = ini.getInteger("config", "duration_player2", 0);
-		durations[2] = ini.getInteger("config", "duration_player3", 0);
-		durations[3] = ini.getInteger("config", "duration_player4", 0);
-
-		shouldHold[0] = (ini.getInteger("config", "hold_player1", 0) == 1);
-		shouldHold[1] = (ini.getInteger("config", "hold_player2", 0) == 1);
-		shouldHold[2] = (ini.getInteger("config", "hold_player3", 0) == 1);
-		shouldHold[3] = (ini.getInteger("config", "hold_player4", 0) == 1);
-	}
-
-	Sleep(minimiseDelay);
-	auto hwnd = GetConsoleHwnd();
-	ShowWindow(hwnd, SW_MINIMIZE);
-
-
-
-
-
-	for (auto& key : whichKey)
-		if (key > 255)
-			key = 27;
-
-	for (;;)
-	{
-		for (int i = 0; i < 4; i++)
+		if (d.settings[i].hold_mode == 1)
 		{
-			XInputGetStateEx(i, &(playerStates[i]));
-			if (playerStates[i].Gamepad.wButtons & 0x0400)
+			if (d.settings[i].key != 0)
 			{
-				if (!wasPressedPrev[i])
+
+				printf ("Player %i guide down, will start holding key %lli\n", i+1, d.settings[i].key);
+				key_down(d.settings[i].key);
+			}
+		}
+		else if (d.settings[i].hold_mode == 2)
+		{
+			guideDepressed[i] = hrc::now();
+
+		}
+	});
+
+	d.guideReleased.connect([&](int i)
+	{
+		if (d.settings[i].hold_mode == 1)
+		{
+			printf ("Player %i guide up, will stop holding key %lli\n", i+1, d.settings[i].key);
+			key_up(d.settings[i].key);
+		}
+		else if (d.settings[i].hold_mode == 2)
+		{
+			int64_t ms = (std::chrono::duration_cast<std::chrono::milliseconds>(hrc::now() - guideDepressed[i])).count();
+			if (ms >= d.settings[i].longpress_duration)
+			{
+				if (d.settings[i].longpress_key != 0)
 				{
-
-					printf("Player %i pressed!\n", i+1);
-
-					if(shouldHold[i])
-					{
-						send_inp_down(whichKey[i]);
-					}
-					else
-					{
-						send_inp(whichKey[i], delays[i], durations[i]);
-					}
-
-
+					printf ("Player %i guide pressed for longer than %lli ms, will now tap key %lli\n", i+1, d.settings[i].longpress_duration, d.settings[i].longpress_key);
+					key_tap(d.settings[i].longpress_key, 0, 1);
 				}
 
-				wasPressedPrev[i] = true;
 			}
 			else
 			{
-				if ((shouldHold[i]) && (wasPressedPrev[i]))
+				if (d.settings[i].key != 0)
 				{
-					send_inp_up(whichKey[i]);
+					printf ("Player %i guide pressed for less than %lli ms, will now tap key %lli\n", i+1, d.settings[i].longpress_duration, d.settings[i].key);
+					key_tap(d.settings[i].key, 0, 1);
 				}
-				wasPressedPrev[i] = false;
+
 			}
 		}
+	});
 
-		// 33
+	for (;;)
+	{
+		d.update();
 		Sleep(50);
-
 	}
+
+    return 0;
 }
