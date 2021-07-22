@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1A08601A-0971-4A8F-AE2B-CF6184D01CDD}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <ProjectName>Xbox Guide button map to key</ProjectName>
+    <ProjectName>XboxGuideButtonMapToKey</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
