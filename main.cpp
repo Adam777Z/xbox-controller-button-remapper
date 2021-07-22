@@ -5,17 +5,23 @@
 
 #include "INI.hpp"
 
-using namespace std;
-
 #include <windows.h>
 #include "Signal.hpp"
+
+#include <shellapi.h>
+#include "resource.h"
+
+#include "qsb.hpp"
+#include <stdio.h>
+
+using namespace std;
 
 
 
 void fatal_error(const std::string&& text)
 {
 	MessageBox(NULL, text.c_str(), "Fatal Error", MB_OK);
-	std::terminate();
+	exit(1);
 }
 
 void key_down(int8_t code)
@@ -51,35 +57,6 @@ void key_tap(int8_t code, int64_t delay, int64_t duration)
 	key_down(code);
 	std::this_thread::sleep_for(std::chrono::milliseconds(duration));
 	key_up(code);
-}
-
-HWND get_console_hwnd(void)
-{
-   static const auto titleBufferLen = 1024;
-
-   // Fetch current window title.
-   char oldWindowTitle[titleBufferLen];
-   GetConsoleTitle(oldWindowTitle, titleBufferLen);
-
-   // Format a "unique" NewWindowTitle.
-   char tempWindowTitle[titleBufferLen];
-   wsprintf(tempWindowTitle, "%d/%d", GetTickCount(), GetCurrentProcessId());
-
-   // Change current window title.
-   SetConsoleTitle(tempWindowTitle);
-
-   // Ensure window title has been updated.
-   Sleep(40);
-
-   // Look for NewWindowTitle.
-   auto hwndFound = FindWindow(NULL, tempWindowTitle);
-
-   // Restore original window title.
-   SetConsoleTitle(oldWindowTitle);
-
-   SetConsoleTitle("Xbox Guide button map to key");
-
-   return(hwndFound);
 }
 
 
@@ -229,33 +206,47 @@ private:
 	}
 };
 
-#include "qsb.hpp"
 
 
-#include <stdio.h>
+#define WM_SYSICON (WM_USER + 1)
 
-int main()
+/* Variables */
+HWND hWnd;
+HINSTANCE hCurrentInstance;
+HMENU hMenu;
+NOTIFYICONDATA notifyIconData;
+TCHAR szTIP[64] = TEXT("Xbox Guide button map to key");
+char szClassName[] = "Xbox Guide button map to key";
+
+/* Procedures */
+LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
+
+
+int WINAPI WinMain(HINSTANCE hThisInstance,
+	HINSTANCE hPrevInstance,
+	LPSTR lpszArgument,
+	int nCmdShow)
 {
+	/* This is the handle for our window */
+	MSG messages; /* Here messages to the application are saved */
+	hCurrentInstance = hThisInstance;
+
+	WNDCLASS wincl;
+	ZeroMemory(&wincl, sizeof(wincl));
+	wincl.hInstance = hThisInstance;
+	wincl.lpszClassName = szClassName;
+	wincl.lpfnWndProc = WindowProc; /* This function is called by windows */
+	ATOM szClassName = RegisterClass(&wincl);
+	hWnd = CreateWindow((LPCTSTR)szClassName, "", 0, 0, 0, 0, 0, NULL, NULL, hThisInstance, NULL);
+
+	// Main
+
 	GlobalData& d = GlobalData::get();
-
-	// HWND hWnd = CreateDialog( hInstance, MAKEINTRESOURCE(IDD_DLG_DIALOG), NULL, (DLGPROC)DlgProc );
-	// NOTIFYICONDATA stData;
-	// ZeroMemory(&stData, sizeof(stData));
-	// stData.cbSize = sizeof(stData);
-	// stData.hWnd = hWnd;
-	// stData.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
-	// //stData.uCallbackMessage = WM_TRAY;
-	// stData.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-	// //LoadStringSafe(IDS_TIP, stData.szTip, _countof(stData.szTip));
-	// Shell_NotifyIcon(NIM_ADD, &stData);
-
-	ShowWindow(get_console_hwnd(), SW_MINIMIZE);
 
 	typedef std::chrono::high_resolution_clock hrc;
 
 	auto now = hrc::now();
-	hrc::time_point guideDepressed[4] = {now,now,now,now};
-
+	hrc::time_point guideDepressed[4] = { now,now,now,now };
 
 
 	d.guidePressed.connect([&](int i)
@@ -302,11 +293,89 @@ int main()
 		}
 	});
 
-	for (;;)
+	/*for (;;)
 	{
+		d.update();
+		Sleep(50);
+	}*/
+
+	while (true)
+	{
+		while (PeekMessage(&messages, NULL, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&messages);
+			DispatchMessage(&messages);
+		} // Will get messages until queue is clear
+		if (messages.message == WM_QUIT)
+			break;
+		// Do a tick of any intensive stuff here such as graphics processing
 		d.update();
 		Sleep(50);
 	}
 
-    return 0;
+	/* Run the message loop. It will run until GetMessage() returns 0 */
+	//while (GetMessage(&messages, NULL, 0, 0))
+	//{
+	//	TranslateMessage(&messages); // Translate virtual-key messages into character messages
+	//	DispatchMessage(&messages); // Send message to WindowProc
+	//}
+
+	return messages.wParam;
+}
+
+
+/*  This function is called by the Windows function DispatchMessage()  */
+
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	/* handle the messages */
+	switch (uMsg)
+	{
+	case WM_CREATE:
+	{
+		//memset(&notifyIconData, 0, sizeof(NOTIFYICONDATA));
+		ZeroMemory(&notifyIconData, sizeof(notifyIconData));
+		notifyIconData.cbSize = sizeof(notifyIconData);
+		notifyIconData.hWnd = hwnd;
+		notifyIconData.uID = ID_TRAY_APP_ICON;
+		notifyIconData.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+		notifyIconData.uCallbackMessage = WM_SYSICON; //Set up our invented Windows Message
+		notifyIconData.hIcon = (HICON)LoadImage(hCurrentInstance, MAKEINTRESOURCE(IDI_ICON1), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR);
+		strncpy(notifyIconData.szTip, szTIP, sizeof(szTIP));
+		Shell_NotifyIcon(NIM_ADD, &notifyIconData);
+
+		hMenu = CreatePopupMenu();
+		AppendMenu(hMenu, MF_STRING, ID_TRAY_EXIT, TEXT("Exit"));
+	}
+	return 0;
+
+	// Our user defined WM_SYSICON message
+	case WM_SYSICON:
+	{
+		if (lParam == WM_RBUTTONDOWN)
+		{
+			// Get current mouse position
+			POINT curPoint;
+			GetCursorPos(&curPoint);
+			SetForegroundWindow(hwnd);
+
+			// TrackPopupMenu blocks the app until TrackPopupMenu returns
+			UINT clicked = TrackPopupMenu(hMenu, TPM_RETURNCMD | TPM_NONOTIFY, curPoint.x, curPoint.y, 0, hwnd, NULL);
+
+			if (clicked == ID_TRAY_EXIT)
+			{
+				// Quit the application
+				Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
+				PostQuitMessage(0);
+			}
+		}
+	}
+	break;
+
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+	}
+
+	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }

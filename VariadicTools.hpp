@@ -38,9 +38,9 @@ namespace handy
 			typedef typename VariadicLast<T...>::type  lastType;
 		};
 
-		#define VAR_IS_NOT_USED __attribute__((unused))
+		#define VAR_IS_NOT_USED
 
-		template <typename T1, typename... moreT >
+		template <typename T1, typename... moreT>
 		T1 GetFirstVariadicValue(T1& first, moreT&... more VAR_IS_NOT_USED)
 		{
 			return first;
