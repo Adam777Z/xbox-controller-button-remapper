@@ -223,11 +223,22 @@ char szClassName[] = "Xbox Guide button map to key";
 LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
 
 
-int WINAPI WinMain(HINSTANCE hThisInstance,
-	HINSTANCE hPrevInstance,
-	LPSTR lpszArgument,
-	int nCmdShow)
+int WINAPI WinMain(HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpszArgument, int nCmdShow)
 {
+	// Try to open the mutex.
+	HANDLE hMutex = OpenMutex(MUTEX_ALL_ACCESS, 0, "XboxGuideButtonMapToKey1.0");
+
+	if (!hMutex)
+	{
+		// Mutex doesn't exist. This is the first instance so create the mutex.
+		hMutex = CreateMutex(0, 0, "XboxGuideButtonMapToKey1.0");
+	}
+	else
+	{
+		// The mutex exists so this is the second instance so return.
+		return 0;
+	}
+
 	/* This is the handle for our window */
 	MSG messages; /* Here messages to the application are saved */
 	hCurrentInstance = hThisInstance;
@@ -262,7 +273,6 @@ int WINAPI WinMain(HINSTANCE hThisInstance,
 		else if (d.settings[i].hold_mode == 2)
 		{
 			guideDepressed[i] = hrc::now();
-
 		}
 	});
 
@@ -281,7 +291,6 @@ int WINAPI WinMain(HINSTANCE hThisInstance,
 				{
 					key_tap(d.settings[i].longpress_key, 0, 1);
 				}
-
 			}
 			else
 			{
@@ -289,7 +298,6 @@ int WINAPI WinMain(HINSTANCE hThisInstance,
 				{
 					key_tap(d.settings[i].key, 0, 1);
 				}
-
 			}
 		}
 	});
@@ -307,8 +315,15 @@ int WINAPI WinMain(HINSTANCE hThisInstance,
 			TranslateMessage(&messages);
 			DispatchMessage(&messages);
 		} // Will get messages until queue is clear
+		
 		if (messages.message == WM_QUIT)
+		{
+			// The app is closing so release the mutex.
+			ReleaseMutex(hMutex);
+
 			break;
+		}
+
 		// Do a tick of any intensive stuff here such as graphics processing
 		d.update();
 		Sleep(50);
