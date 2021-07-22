@@ -5,6 +5,7 @@
 
 #include "INI.hpp"
 
+#include "targetver.h"
 #include <windows.h>
 #include "Signal.hpp"
 

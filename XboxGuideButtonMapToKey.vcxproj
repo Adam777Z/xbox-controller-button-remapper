@@ -112,6 +112,7 @@
     <ClInclude Include="qsb.hpp" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Signal.hpp" />
+    <ClInclude Include="targetver.h" />
     <ClInclude Include="VariadicTools.hpp" />
   </ItemGroup>
   <ItemGroup>
