@@ -1,5 +1,3 @@
-
-
 #include <string>
 
 #include <chrono>
@@ -78,6 +76,8 @@ HWND get_console_hwnd(void)
 
    // Restore original window title.
    SetConsoleTitle(oldWindowTitle);
+
+   SetConsoleTitle("Xbox Guide button map to key");
 
    return(hwndFound);
 }
@@ -198,8 +198,8 @@ private:
 		XInputGetStateEx = (XInputGetStateEx_t)GetProcAddress(dll, (LPCSTR)100);
 
 		handy::io::INIFile ini;
-		if (!ini.loadFile("button2.ini"))
-			fatal_error("Couldn't load button2.ini");
+		if (!ini.loadFile("config.ini"))
+			fatal_error("Couldn't load config.ini");
 
 		settings[0].key                = ini.getInteger("player1", "key", 27);
 		settings[0].hold_mode          = ini.getInteger("player1", "hold_mode", 1);
@@ -238,8 +238,17 @@ int main()
 {
 	GlobalData& d = GlobalData::get();
 
-	printf("Button on 360 guide v6, by pinumbernumber.\nWill minimise now\n\n");
-	Sleep(500);
+	// HWND hWnd = CreateDialog( hInstance, MAKEINTRESOURCE(IDD_DLG_DIALOG), NULL, (DLGPROC)DlgProc );
+	// NOTIFYICONDATA stData;
+	// ZeroMemory(&stData, sizeof(stData));
+	// stData.cbSize = sizeof(stData);
+	// stData.hWnd = hWnd;
+	// stData.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+	// //stData.uCallbackMessage = WM_TRAY;
+	// stData.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+	// //LoadStringSafe(IDS_TIP, stData.szTip, _countof(stData.szTip));
+	// Shell_NotifyIcon(NIM_ADD, &stData);
+
 	ShowWindow(get_console_hwnd(), SW_MINIMIZE);
 
 	typedef std::chrono::high_resolution_clock hrc;
@@ -255,8 +264,6 @@ int main()
 		{
 			if (d.settings[i].key != 0)
 			{
-
-				printf ("Player %i guide down, will start holding key %lli\n", i+1, d.settings[i].key);
 				key_down(d.settings[i].key);
 			}
 		}
@@ -271,7 +278,6 @@ int main()
 	{
 		if (d.settings[i].hold_mode == 1)
 		{
-			printf ("Player %i guide up, will stop holding key %lli\n", i+1, d.settings[i].key);
 			key_up(d.settings[i].key);
 		}
 		else if (d.settings[i].hold_mode == 2)
@@ -281,7 +287,6 @@ int main()
 			{
 				if (d.settings[i].longpress_key != 0)
 				{
-					printf ("Player %i guide pressed for longer than %lli ms, will now tap key %lli\n", i+1, d.settings[i].longpress_duration, d.settings[i].longpress_key);
 					key_tap(d.settings[i].longpress_key, 0, 1);
 				}
 
@@ -290,7 +295,6 @@ int main()
 			{
 				if (d.settings[i].key != 0)
 				{
-					printf ("Player %i guide pressed for less than %lli ms, will now tap key %lli\n", i+1, d.settings[i].longpress_duration, d.settings[i].key);
 					key_tap(d.settings[i].key, 0, 1);
 				}
 
