@@ -143,9 +143,13 @@ struct GlobalData
 			XInputGetStateEx(i, &states[i]);
 
 			if ((is_guide_down(states[i])) && (!wasGuideDownPrev[i]))
+			{
 				guidePressed.call(i);
+			}
 			else if ((!is_guide_down(states[i])) && (wasGuideDownPrev[i]))
+			{
 				guideReleased.call(i);
+			}
 
 			wasGuideDownPrev[i] = is_guide_down(states[i]);
 		}
@@ -171,13 +175,17 @@ private:
 		dll = LoadLibrary(dll_path);
 
 		if (!dll)
+		{
 			fatal_error("Error loading XInput DLL.");
+		}
 
 		XInputGetStateEx = (XInputGetStateEx_t)GetProcAddress(dll, (LPCSTR)100);
 
 		handy::io::INIFile ini;
 		if (!ini.loadFile("config.ini"))
+		{
 			fatal_error("Couldn't load config.ini");
+		}
 
 		settings[0].key                = ini.getInteger("player1", "key", 27);
 		settings[0].hold_mode          = ini.getInteger("player1", "hold_mode", 1);
