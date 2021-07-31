@@ -51,7 +51,7 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="XboxOneLogoIcon.ico">
+    <Image Include="XboxOneLogo.ico">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

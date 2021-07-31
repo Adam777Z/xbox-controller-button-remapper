@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1A08601A-0971-4A8F-AE2B-CF6184D01CDD}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <ProjectName>Xbox Controller Share button map to key</ProjectName>
+    <ProjectName>Xbox Controller button remapper</ProjectName>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -149,7 +149,7 @@ xcopy /y /d "$(ProjectDir)SDL\VisualC\x64\Release\SDL2.dll" "$(OutDir)"</Command
     <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="XboxOneLogoIcon.ico" />
+    <Image Include="XboxOneLogo.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
