@@ -15,9 +15,199 @@
 #include "qsb.hpp"
 #include <stdio.h>
 
+//#include <stdlib.h>
+//#include <string.h>
+
+#include "SDL.h"
+//#include "SDL_joystick_c.h"
+//#include "SDL_gamecontroller.h"
+
 using namespace std;
 
+#define MAX_CONTROLLERS 4
 
+static int num_controllers = 0;
+//static SDL_Window* window = NULL;
+//static SDL_GameController* controller;
+//static SDL_GameController** controllers[4];
+static SDL_GameController** controllers = (SDL_GameController**)SDL_realloc(controllers, MAX_CONTROLLERS * sizeof(*controllers));
+
+static void add_controller_mapping(char* guid)
+{
+	char mapping_string[1024];
+
+	SDL_strlcpy(mapping_string, guid, sizeof(mapping_string));
+	SDL_strlcat(mapping_string, ",Xbox Controller,platform:Windows,", sizeof(mapping_string));
+	SDL_strlcat(mapping_string, "a:b0,b:b1,x:b2,y:b3,back:b6,guide:b10,start:b7,leftstick:b8,rightstick:b9,leftshoulder:b4,rightshoulder:b5,dpup:h0.1,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:a4,righttrigger:a5,", sizeof(mapping_string));
+	SDL_strlcat(mapping_string, "misc1:b11,", sizeof(mapping_string));
+
+	SDL_GameControllerAddMapping(mapping_string);
+}
+
+static int find_controller(SDL_JoystickID controller_id)
+{
+	for (int i = 0; i < num_controllers; ++i) {
+		if (controller_id == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controllers[i]))) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+static void add_controller(int i)
+{
+	SDL_JoystickID controller_id = SDL_JoystickGetDeviceInstanceID(i);
+	if (controller_id < 0) {
+		//SDL_Log("Couldn't get controller ID: %s\n", SDL_GetError());
+		return;
+	}
+
+	if (find_controller(controller_id) >= 0) {
+		/* We already have this controller */
+		return;
+	}
+
+	char guid[64];
+
+	SDL_JoystickGetGUIDString(SDL_JoystickGetDeviceGUID(i), guid, sizeof(guid));
+
+	add_controller_mapping(guid);
+
+	//SDL_Log("Mapping: %s\n", SDL_GameControllerMappingForGUID(SDL_JoystickGetDeviceGUID(i)));
+
+	SDL_GameController* controller = SDL_GameControllerOpen(i);
+	if (!controller) {
+		//SDL_Log("Couldn't open controller: %s\n", SDL_GetError());
+		return;
+	}
+	//else if (!SDL_GameControllerHasButton(controller, SDL_CONTROLLER_BUTTON_MISC1))
+	//{
+	//	SDL_Log("No compatible controller detected.");
+	//}
+
+	//if (SDL_GameControllerHasButton(controller, SDL_CONTROLLER_BUTTON_MISC1))
+	//{
+	//	SDL_Log("Compatible controller detected.\n");
+	//}
+
+	//controllers = (SDL_GameController**)SDL_realloc(controllers, (num_controllers + 1) * sizeof(*controllers));
+	//if (!controllers) {
+	//	SDL_GameControllerClose(controller);
+	//	return;
+	//}
+
+	controllers[i] = controller;
+
+	//num_controllers++;
+	num_controllers = SDL_NumJoysticks();
+
+	//SDL_Log("Opened controller: %s\n", SDL_GameControllerName(controller));
+}
+
+static void add_controllers()
+{
+	num_controllers = SDL_NumJoysticks();
+
+	if (num_controllers > MAX_CONTROLLERS)
+	{
+		num_controllers = MAX_CONTROLLERS;
+	}
+
+	for (int i = 0; i < num_controllers; ++i)
+	{
+		add_controller(i);
+	}
+}
+
+static void close_controller(int i)
+{
+	//int i = find_controller(controller);
+
+	//if (i < 0) {
+	//	return;
+	//}
+
+	if (controllers[i] == NULL)
+	{
+		return;
+	}
+
+	//if (!SDL_GameControllerGetAttached(controllers[i]))
+	//{
+	//	return;
+	//}
+
+	const char* controller_name = SDL_GameControllerName(controllers[i]);
+
+	SDL_GameControllerClose(controllers[i]);
+
+	controllers[i] = NULL;
+
+	//--num_controllers;
+	num_controllers = SDL_NumJoysticks();
+
+	//if (i < num_controllers) {
+	//	SDL_memcpy(&controllers[i], &controllers[i + 1], (num_controllers - i) * sizeof(*controllers));
+	//}
+
+	//if (num_controllers > 0) {
+	//	controller = controllers[0];
+	//}
+	//else {
+	//	controller = NULL;
+	//}
+
+	//SDL_Log("Closed controller: %s\n", controller_name);
+}
+
+static void close_controllers()
+{
+	for (int i = 0; i < MAX_CONTROLLERS; ++i)
+	{
+		close_controller(i);
+	}
+}
+
+static void update_controllers()
+{
+	if (SDL_NumJoysticks() != num_controllers)
+	{
+		//bool attached = false;
+
+		//for (int i = 0; i < MAX_CONTROLLERS; ++i)
+		//{
+		//	if (SDL_GameControllerGetAttached(controllers[i]))
+		//	{
+		//		attached = true;
+		//	}
+		//}
+
+		//if (!attached)
+		//{
+		//	add_controller(i);
+		//}
+
+		//num_controllers = SDL_NumJoysticks();
+
+		//if (SDL_NumJoysticks() < num_controllers)
+		//{
+		//	close_controller(i);
+		//}
+		//else if (SDL_NumJoysticks() > num_controllers)
+		//{
+		//	add_controller(i);
+		//}
+
+		close_controllers();
+		add_controllers();
+	}
+}
+
+
+void error(const std::string&& text)
+{
+	MessageBox(NULL, text.c_str(), "Error", MB_OK);
+}
 
 void fatal_error(const std::string&& text)
 {
@@ -29,12 +219,14 @@ void key_down(int8_t code)
 {
 	INPUT inp;
 	inp.type = INPUT_KEYBOARD;
-	inp.ki.wScan = 0; // hardware scan code for key
+	//inp.ki.wScan = 0; // hardware scan code for key
+	inp.ki.wScan = code; // hardware scan code for key
 	inp.ki.time = 0;
 	inp.ki.dwExtraInfo = 0;
-
-	inp.ki.wVk = code; // virtual-key code
-	inp.ki.dwFlags = 0; // 0 for key press
+	//inp.ki.wVk = code; // virtual-key code
+	inp.ki.wVk = 0; // We're doing scan codes instead
+	//inp.ki.dwFlags = 0; // 0 for key press
+	inp.ki.dwFlags = KEYEVENTF_SCANCODE;
 	SendInput(1, &inp, sizeof(INPUT));
 }
 
@@ -42,12 +234,14 @@ void key_up(int8_t code)
 {
 	INPUT inp;
 	inp.type = INPUT_KEYBOARD;
-	inp.ki.wScan = 0; // hardware scan code for key
+	//inp.ki.wScan = 0; // hardware scan code for key
+	inp.ki.wScan = code; // hardware scan code for key
 	inp.ki.time = 0;
 	inp.ki.dwExtraInfo = 0;
-
-	inp.ki.wVk = code; // virtual-key code
-	inp.ki.dwFlags = KEYEVENTF_KEYUP; // 0 for key press
+	//inp.ki.wVk = code; // virtual-key code
+	inp.ki.wVk = 0; // We're doing scan codes instead
+	//inp.ki.dwFlags = KEYEVENTF_KEYUP; // 0 for key press
+	inp.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
 	SendInput(1, &inp, sizeof(INPUT));
 }
 
@@ -62,23 +256,6 @@ void key_tap(int8_t code, int64_t delay, int64_t duration)
 
 
 
-struct XINPUT_GAMEPAD
-{
-	WORD  wButtons;
-	BYTE  bLeftTrigger;
-	BYTE  bRightTrigger;
-	SHORT sThumbLX;
-	SHORT sThumbLY;
-	SHORT xThumbRX;
-	SHORT xThumbRY;
-};
-
-struct XINPUT_STATE
-{
-	DWORD          dwPacketNumber;
-	XINPUT_GAMEPAD Gamepad;
-};
-
 struct PlayerSettings
 {
 	int64_t key;
@@ -88,9 +265,9 @@ struct PlayerSettings
 	int64_t delay;
 };
 
-bool inline is_guide_down(XINPUT_STATE& state)
+bool inline is_share_button_pressed(int i)
 {
-	return state.Gamepad.wButtons & 0x0400;
+	return SDL_GameControllerGetButton(controllers[i], SDL_CONTROLLER_BUTTON_MISC1) == SDL_PRESSED;
 }
 
 void print(int8_t v)
@@ -125,8 +302,8 @@ struct GlobalData
 {
 
 	PlayerSettings settings[4];
-	handy::arch::Signal<void(int which)> guidePressed;
-	handy::arch::Signal<void(int which)> guideReleased;
+	handy::arch::Signal<void(int which)> button_pressed;
+	handy::arch::Signal<void(int which)> button_released;
 
 
 	// Singleton
@@ -138,76 +315,120 @@ struct GlobalData
 
 	void update()
 	{
-		for (int i = 0; i < 4; ++i)
+		SDL_JoystickUpdate();
+		update_controllers();
+
+		for (int i = 0; i < num_controllers; ++i)
 		{
-			XInputGetStateEx(i, &states[i]);
+			//XInputGetStateEx(i, &states[i]);
 
-			if ((is_guide_down(states[i])) && (!wasGuideDownPrev[i]))
+			//std::string pressed = std::to_string(states[i].Gamepad.wButtons);
+
+			//if (pressed != "0") {
+			//	MessageBox(NULL, pressed.c_str(), "Info", MB_OK);
+			//}
+
+			/*if (SDL_GameControllerGetButton(controllers[i], SDL_CONTROLLER_BUTTON_A) == SDL_PRESSED) {
+				SDL_Log("A button pressed.\n");
+			}*/
+
+			/*if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_MISC1) == SDL_PRESSED) {
+				SDL_Log("Share button pressed.\n");
+			}*/
+
+			/*if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_MISC1) == SDL_RELEASED) {
+				SDL_Log("Share button released.\n");
+			}*/
+
+			//if (is_share_button_pressed(i))
+			//{
+			//	SDL_Log("Share button pressed.\n\n");
+			//}
+
+			bool share_button_pressed = is_share_button_pressed(i);
+
+			if (share_button_pressed && !was_share_button_pressed_prev[i])
 			{
-				guidePressed.call(i);
+				//SDL_Log("Share button pressed.\n");
+				button_pressed.call(i);
 			}
-			else if ((!is_guide_down(states[i])) && (wasGuideDownPrev[i]))
+			else if (!share_button_pressed && was_share_button_pressed_prev[i])
 			{
-				guideReleased.call(i);
+				//SDL_Log("Share button released.\n");
+				button_released.call(i);
 			}
 
-			wasGuideDownPrev[i] = is_guide_down(states[i]);
+			was_share_button_pressed_prev[i] = share_button_pressed;
 		}
 	}
 
 private:
 
 
-	XINPUT_STATE   states[4];
-	bool           wasGuideDownPrev[4];
-	typedef DWORD (__stdcall *XInputGetStateEx_t) (DWORD, XINPUT_STATE*);
-	XInputGetStateEx_t XInputGetStateEx;
+	//XINPUT_STATE   states[MAX_CONTROLLERS];
+	bool was_share_button_pressed_prev[4] = { false,false,false,false };
+	//typedef DWORD (__stdcall *XInputGetStateEx_t) (DWORD, XINPUT_STATE*);
+	//XInputGetStateEx_t XInputGetStateEx;
 
-	HINSTANCE dll;
+	//HINSTANCE xinput_dll;
 
 	GlobalData()
 	{
-		dll = NULL;
+		//xinput_dll = NULL;
 
-		TCHAR dll_path[MAX_PATH];
+		/*TCHAR dll_path[MAX_PATH];
 		GetSystemDirectory(dll_path, sizeof(dll_path));
-		strcat(dll_path, "\\xinput1_3.dll");
-		dll = LoadLibrary(dll_path);
+		strcat(dll_path, "\\xinput1_3.dll");*/
 
-		if (!dll)
+		// Try to load 1.4 (Windows 8+)
+		//xinput_dll = LoadLibrary("xinput1_4.dll");
+		//if (!xinput_dll)
+		//{
+		//	// Try to load 1.3 (Windows <8)
+		//	xinput_dll = LoadLibrary("xinput1_3.dll");
+
+		//	if (!xinput_dll)
+		//	{
+		//		fatal_error("Error loading XInput DLL.");
+		//	}
+		//}
+
+		//xinput_dll = LoadLibrary(dll_path);
+
+		/*if (!xinput_dll)
 		{
 			fatal_error("Error loading XInput DLL.");
-		}
+		}*/
 
-		XInputGetStateEx = (XInputGetStateEx_t)GetProcAddress(dll, (LPCSTR)100);
+		//XInputGetStateEx = (XInputGetStateEx_t)GetProcAddress(xinput_dll, (LPCSTR)100);
 
 		handy::io::INIFile ini;
 		if (!ini.loadFile("config.ini"))
 		{
-			fatal_error("Couldn't load config.ini");
+			error("Couldn't load config.ini. Using default config.");
 		}
 
-		settings[0].key                = ini.getInteger("player1", "key", 27);
+		settings[0].key                = ini.getInteger("player1", "key", 1);
 		settings[0].hold_mode          = ini.getInteger("player1", "hold_mode", 1);
-		settings[0].longpress_key      = ini.getInteger("player1", "longpress_key", 27);
+		settings[0].longpress_key      = ini.getInteger("player1", "longpress_key", 1);
 		settings[0].longpress_duration = ini.getInteger("player1", "longpress_duration", 1000);
 		settings[0].delay              = ini.getInteger("player1", "delay", 0);
 
-		settings[1].key                = ini.getInteger("player2", "key", 27);
+		settings[1].key                = ini.getInteger("player2", "key", 1);
 		settings[1].hold_mode          = ini.getInteger("player2", "hold_mode", 1);
-		settings[1].longpress_key      = ini.getInteger("player2", "longpress_key", 27);
+		settings[1].longpress_key      = ini.getInteger("player2", "longpress_key", 1);
 		settings[1].longpress_duration = ini.getInteger("player2", "longpress_duration", 1000);
 		settings[1].delay              = ini.getInteger("player2", "delay", 0);
 
-		settings[2].key                = ini.getInteger("player3", "key", 27);
+		settings[2].key                = ini.getInteger("player3", "key", 1);
 		settings[2].hold_mode          = ini.getInteger("player3", "hold_mode", 1);
-		settings[2].longpress_key      = ini.getInteger("player3", "longpress_key", 27);
+		settings[2].longpress_key      = ini.getInteger("player3", "longpress_key", 1);
 		settings[2].longpress_duration = ini.getInteger("player3", "longpress_duration", 1000);
 		settings[2].delay              = ini.getInteger("player3", "delay", 0);
 
-		settings[3].key                = ini.getInteger("player4", "key", 27);
+		settings[3].key                = ini.getInteger("player4", "key", 1);
 		settings[3].hold_mode          = ini.getInteger("player4", "hold_mode", 1);
-		settings[3].longpress_key      = ini.getInteger("player4", "longpress_key", 27);
+		settings[3].longpress_key      = ini.getInteger("player4", "longpress_key", 1);
 		settings[3].longpress_duration = ini.getInteger("player4", "longpress_duration", 1000);
 		settings[3].delay              = ini.getInteger("player4", "delay", 0);
 
@@ -224,22 +445,22 @@ HWND hWnd;
 HINSTANCE hCurrentInstance;
 HMENU hMenu;
 NOTIFYICONDATA notifyIconData;
-TCHAR szTIP[64] = TEXT("Xbox Guide button map to key");
-char szClassName[] = "Xbox Guide button map to key";
+TCHAR szTIP[64] = TEXT("Xbox Controller Share button map to key");
+char szClassName[] = "Xbox Controller Share button map to key";
 
 /* Procedures */
 LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
 
 
-int WINAPI WinMain(HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpszArgument, int nCmdShow)
+int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpszArgument, _In_ int nCmdShow)
 {
 	// Try to open the mutex.
-	HANDLE hMutex = OpenMutex(MUTEX_ALL_ACCESS, 0, "XboxGuideButtonMapToKey1.0");
+	HANDLE hMutex = OpenMutex(MUTEX_ALL_ACCESS, 0, "Xbox-Controller-Share-button-map-to-key");
 
 	if (!hMutex)
 	{
 		// Mutex doesn't exist. This is the first instance so create the mutex.
-		hMutex = CreateMutex(0, 0, "XboxGuideButtonMapToKey1.0");
+		hMutex = CreateMutex(0, 0, "Xbox-Controller-Share-button-map-to-key");
 	}
 	else
 	{
@@ -266,10 +487,10 @@ int WINAPI WinMain(HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpszA
 	typedef std::chrono::high_resolution_clock hrc;
 
 	auto now = hrc::now();
-	hrc::time_point guideDepressed[4] = { now,now,now,now };
+	hrc::time_point button_depressed[4] = { now,now,now,now };
 
 
-	d.guidePressed.connect([&](int i)
+	d.button_pressed.connect([&](int i)
 	{
 		if (d.settings[i].hold_mode == 1)
 		{
@@ -280,11 +501,11 @@ int WINAPI WinMain(HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpszA
 		}
 		else if (d.settings[i].hold_mode == 2)
 		{
-			guideDepressed[i] = hrc::now();
+			button_depressed[i] = hrc::now();
 		}
 	});
 
-	d.guideReleased.connect([&](int i)
+	d.button_released.connect([&](int i)
 	{
 		if (d.settings[i].hold_mode == 1)
 		{
@@ -292,7 +513,7 @@ int WINAPI WinMain(HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpszA
 		}
 		else if (d.settings[i].hold_mode == 2)
 		{
-			int64_t ms = (std::chrono::duration_cast<std::chrono::milliseconds>(hrc::now() - guideDepressed[i])).count();
+			int64_t ms = (std::chrono::duration_cast<std::chrono::milliseconds>(hrc::now() - button_depressed[i])).count();
 			if (ms >= d.settings[i].longpress_duration)
 			{
 				if (d.settings[i].longpress_key != 0)
@@ -316,6 +537,28 @@ int WINAPI WinMain(HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpszA
 		Sleep(50);
 	}*/
 
+	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
+
+	/* Initialize SDL */
+	if (SDL_Init(SDL_INIT_GAMECONTROLLER) < 0) {
+		//SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't initialize SDL: %s\n", SDL_GetError());
+		fatal_error(strcat("Couldn't initialize SDL: %s", SDL_GetError()));
+	}
+
+	//SDL_GameControllerAddMappingsFromFile("gamecontrollermapping.txt");
+
+	//num_controllers = SDL_NumJoysticks();
+
+	//if (num_controllers > 0)
+	//{
+		//for (int i = 0; i < num_controllers; ++i)
+		//{
+		//	add_controller(i);
+		//}
+	//}
+
+	add_controllers();
+
 	while (true)
 	{
 		while (PeekMessage(&messages, NULL, 0, 0, PM_REMOVE))
@@ -334,6 +577,7 @@ int WINAPI WinMain(HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpszA
 
 		// Do a tick of any intensive stuff here such as graphics processing
 		d.update();
+
 		Sleep(50);
 	}
 
@@ -397,6 +641,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	break;
 
 	case WM_DESTROY:
+		//for (int i = 0; i < num_controllers; ++i)
+		//{
+		//	//SDL_GameControllerClose(controllers[i]);
+		//	close_controller(i);
+		//}
+
+		close_controllers();
+
+		SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
+
 		PostQuitMessage(0);
 		break;
 	}

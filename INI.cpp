@@ -59,7 +59,9 @@ namespace handy
 		{
 			const auto strBegin = str.find_first_not_of(whitespace);
 			if (strBegin == std::string::npos)
+			{
 				return ""; // no content
+			}
 
 			const auto strEnd = str.find_last_not_of(whitespace);
 			const auto strRange = strEnd - strBegin + 1;
@@ -82,38 +84,56 @@ namespace handy
 
         bool CouldBeInt(const std::string& text)
         {
-            if (text.empty())
-                return false;
-            if (text.find_first_not_of("-0123456789") != std::string::npos)
-                return false;
+			if (text.empty())
+			{
+				return false;
+			}
+			if (text.find_first_not_of("-0123456789") != std::string::npos)
+			{
+				return false;
+			}
 
             // If there is a minus sign, there can only be one
             // and it can only be at the start.
             const auto numMinusSigns = GetNumSubstringInstances(text, "-");
-            if (numMinusSigns > 1)
-                return false;
-            if ((numMinusSigns == 1) && (text[0] != '-'))
-                return false;
+			if (numMinusSigns > 1)
+			{
+				return false;
+			}
+			if ((numMinusSigns == 1) && (text[0] != '-'))
+			{
+				return false;
+			}
 
             return true;
         }
 
 		bool CouldBeDouble(const std::string& text)
         {
-            if (text.empty())
-                return false;
-			if (text.find(' ') != std::string::npos)
+			if (text.empty())
+			{
 				return false;
-            if (text.find_first_not_of("-0123456789.eE") != std::string::npos)
-                return false;
+			}
+			if (text.find(' ') != std::string::npos)
+			{
+				return false;
+			}
+			if (text.find_first_not_of("-0123456789.eE") != std::string::npos)
+			{
+				return false;
+			}
 
             // If there is a minus sign, there can only be one or two
             // and one can only be at the start.
             const auto numMinusSigns = GetNumSubstringInstances(text, "-");
-            if (numMinusSigns > 2)
-                return false;
-            if ((numMinusSigns > 0) && (text[0] != '-'))
-                return false;
+			if (numMinusSigns > 2)
+			{
+				return false;
+			}
+			if ((numMinusSigns > 0) && (text[0] != '-'))
+			{
+				return false;
+			}
 
             return true;
         }
@@ -123,8 +143,10 @@ namespace handy
             std::vector<std::string> lines;
             std::ifstream stream (filePath);
 
-            if (!stream.is_open())
-                return false;
+			if (!stream.is_open())
+			{
+				return false;
+			}
 
             std::string thisLine = "";
             while (std::getline(stream, thisLine))
@@ -132,17 +154,23 @@ namespace handy
                 thisLine = TrimLeadingAndTrailingWhitespace(thisLine);
 
                 // omit blank lines
-                if (thisLine.empty())
+				if (thisLine.empty())
+				{
 					continue;
+				}
 
 				// omit all-comment lines
-                if (thisLine[0] == ';')
+				if (thisLine[0] == ';')
+				{
 					continue;
+				}
 
 				// Strip text after a semicolon
 				auto semicolonPos = thisLine.find(';');
 				if (semicolonPos != std::string::npos)
+				{
 					thisLine = thisLine.substr(0, semicolonPos);
+				}
 
 				// Line is okay, add it
                 lines.push_back(thisLine);
@@ -175,12 +203,16 @@ namespace handy
 
 				// Use a default section if necessary
 				if (currentSection == nullptr)
+				{
 					currentSection = &(this->impl->sections["default"]); // operator[] default creates if not exist
+				}
 
 				// StringUtils::SplitString is overkill as we only want the first split.
                 auto firstEqualsPos = line.find('=');
-                if (firstEqualsPos == std::string::npos)
+				if (firstEqualsPos == std::string::npos)
+				{
 					return false; // If no equals sign, then not a key-value pair
+				}
 
 				const std::string name  = TrimLeadingAndTrailingWhitespace(line.substr(0, firstEqualsPos));
 				const std::string value = TrimLeadingAndTrailingWhitespace(line.substr(firstEqualsPos + 1, line.length() - firstEqualsPos));
@@ -246,41 +278,53 @@ namespace handy
 			return true;
 		}
 
-//		bool INIFile::saveFile (const std::string& filePath)
-//		{
-//            std::ofstream stream (filePath);
-//            if (!stream.is_open())
-//                return false;
-//
-//            for (const auto& s : impl->sections)
-//			{
-//				stream << "[" << s.first << "]\n";
-//
-//				for (const auto& intItem : s.second.intItems)
-//					stream << intItem.first << " = " << intItem.second << "\n";
-//
-//				for (const auto& dblItem : s.second.doubleItems)
-//					stream << dblItem.first << " = " << dblItem.second << "\n";
-//
-//				for (const auto& boolItem : s.second.boolItems)
-//					stream << boolItem.first << " = " << (boolItem.second ? "true" : "false") << "\n";
-//
-//				for (const auto& strItem : s.second.stringItems)
-//					stream << strItem.first << " = " << strItem.second << "\n";
-//			}
-//
-//			stream.flush();
-//			stream.close();
-//			return true;
-//		}
+		/*bool INIFile::saveFile (const std::string& filePath)
+		{
+            std::ofstream stream (filePath);
+			if (!stream.is_open())
+			{
+				return false;
+			}
 
-		int64_t INIFile::getInteger   (const std::string& section, const std::string& item, int64_t defaultVal, bool* wasRead) const
+            for (const auto& s : impl->sections)
+			{
+				stream << "[" << s.first << "]\n";
+
+				for (const auto& intItem : s.second.intItems)
+				{
+					stream << intItem.first << " = " << intItem.second << "\n";
+				}
+
+				for (const auto& dblItem : s.second.doubleItems)
+				{
+					stream << dblItem.first << " = " << dblItem.second << "\n";
+				}
+
+				for (const auto& boolItem : s.second.boolItems)
+				{
+					stream << boolItem.first << " = " << (boolItem.second ? "true" : "false") << "\n";
+				}
+
+				for (const auto& strItem : s.second.stringItems)
+				{
+					stream << strItem.first << " = " << strItem.second << "\n";
+				}
+			}
+
+			stream.flush();
+			stream.close();
+			return true;
+		}*/
+
+		int64_t INIFile::getInteger (const std::string& section, const std::string& item, int64_t defaultVal, bool* wasRead) const
 		{
 			const auto& sectionIter = impl->sections.find(section);
 			if (sectionIter == impl->sections.end())
 			{
 				if (wasRead)
+				{
 					*wasRead = false;
+				}
 				return defaultVal;
 			}
 
@@ -289,19 +333,25 @@ namespace handy
 			if (itemIter == entries.cend())
 			{
 				if (wasRead)
+				{
 					*wasRead = false;
+				}
 				return defaultVal;
 			}
 
 			if (itemIter->second.type != INIEntry::type_t::intT)
 			{
 				if (wasRead)
+				{
 					*wasRead = false;
+				}
 				return defaultVal;
 			}
 
 			if (wasRead)
+			{
 				*wasRead = true;
+			}
 			return (*itemIter).second.intV;
 		}
 
