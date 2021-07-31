@@ -188,17 +188,13 @@ void key_tap(int8_t code, int64_t delay, int64_t duration)
 
 struct PlayerSettings
 {
+	int64_t button;
 	int64_t key;
 	int64_t hold_mode;
 	int64_t longpress_key;
 	int64_t longpress_duration;
 	int64_t delay;
 };
-
-bool inline is_button_pressed(int i)
-{
-	return SDL_GameControllerGetButton(controllers[i], SDL_CONTROLLER_BUTTON_MISC1) == SDL_PRESSED;
-}
 
 void print(int8_t v)
 {
@@ -243,6 +239,12 @@ struct GlobalData
 		return dat;
 	}
 
+	bool inline is_button_pressed(int i)
+	{
+		GlobalData& d = GlobalData::get();
+		return SDL_GameControllerGetButton(controllers[i], (d.settings[i].button == 1 ? SDL_CONTROLLER_BUTTON_GUIDE : SDL_CONTROLLER_BUTTON_MISC1)) == SDL_PRESSED;
+	}
+
 	void update()
 	{
 		SDL_JoystickUpdate();
@@ -280,24 +282,28 @@ private:
 			error("Couldn't load config.ini. Using defaults.");
 		}
 
+		settings[0].button             = ini.getInteger("player1", "button", 0);
 		settings[0].key                = ini.getInteger("player1", "key", 1);
 		settings[0].hold_mode          = ini.getInteger("player1", "hold_mode", 1);
 		settings[0].longpress_key      = ini.getInteger("player1", "longpress_key", 1);
 		settings[0].longpress_duration = ini.getInteger("player1", "longpress_duration", 1000);
 		settings[0].delay              = ini.getInteger("player1", "delay", 0);
 
+		settings[1].button             = ini.getInteger("player2", "button", 0);
 		settings[1].key                = ini.getInteger("player2", "key", 1);
 		settings[1].hold_mode          = ini.getInteger("player2", "hold_mode", 1);
 		settings[1].longpress_key      = ini.getInteger("player2", "longpress_key", 1);
 		settings[1].longpress_duration = ini.getInteger("player2", "longpress_duration", 1000);
 		settings[1].delay              = ini.getInteger("player2", "delay", 0);
 
+		settings[2].button             = ini.getInteger("player3", "button", 0);
 		settings[2].key                = ini.getInteger("player3", "key", 1);
 		settings[2].hold_mode          = ini.getInteger("player3", "hold_mode", 1);
 		settings[2].longpress_key      = ini.getInteger("player3", "longpress_key", 1);
 		settings[2].longpress_duration = ini.getInteger("player3", "longpress_duration", 1000);
 		settings[2].delay              = ini.getInteger("player3", "delay", 0);
 
+		settings[3].button             = ini.getInteger("player4", "button", 0);
 		settings[3].key                = ini.getInteger("player4", "key", 1);
 		settings[3].hold_mode          = ini.getInteger("player4", "hold_mode", 1);
 		settings[3].longpress_key      = ini.getInteger("player4", "longpress_key", 1);
@@ -340,15 +346,15 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 		return 0;
 	}
 
-	/* This is the handle for our window */
-	MSG messages; /* Here messages to the application are saved */
+	// This is the handle for our window
+	MSG messages; // Here messages to the application are saved
 	hCurrentInstance = hThisInstance;
 
 	WNDCLASS wincl;
 	ZeroMemory(&wincl, sizeof(wincl));
 	wincl.hInstance = hThisInstance;
 	wincl.lpszClassName = szClassName;
-	wincl.lpfnWndProc = WindowProc; /* This function is called by windows */
+	wincl.lpfnWndProc = WindowProc; // This function is called by windows
 	ATOM szClassName = RegisterClass(&wincl);
 	hWnd = CreateWindow((LPCTSTR)szClassName, "", 0, 0, 0, 0, 0, NULL, NULL, hThisInstance, NULL);
 
@@ -405,7 +411,7 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 
 	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
 
-	/* Initialize SDL */
+	// Initialize SDL
 	if (SDL_Init(SDL_INIT_GAMECONTROLLER) < 0) {
 		fatal_error(strcat("Couldn't initialize SDL: %s", SDL_GetError()));
 	}
@@ -450,7 +456,7 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	/* Handle the messages */
+	// Handle the messages
 	switch (uMsg)
 	{
 	case WM_CREATE:
@@ -461,7 +467,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		notifyIconData.hWnd = hwnd;
 		notifyIconData.uID = ID_TRAY_APP_ICON;
 		notifyIconData.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
-		notifyIconData.uCallbackMessage = WM_SYSICON; //Set up our invented Windows Message
+		notifyIconData.uCallbackMessage = WM_SYSICON; // Set up our invented Windows Message
 		notifyIconData.hIcon = (HICON)LoadImage(hCurrentInstance, MAKEINTRESOURCE(IDI_ICON1), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR);
 		strncpy(notifyIconData.szTip, szTIP, sizeof(szTIP));
 		Shell_NotifyIcon(NIM_ADD, &notifyIconData);
