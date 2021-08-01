@@ -15,14 +15,32 @@
 #include "qsb.hpp"
 #include <stdio.h>
 
+#include <iostream>
+
 #include "SDL.h"
 
 using namespace std;
+
+std::string GetExeFileName()
+{
+	char buffer[MAX_PATH];
+	GetModuleFileName(NULL, buffer, MAX_PATH);
+	return std::string(buffer);
+}
+
+std::string GetExePath()
+{
+	std::string f = GetExeFileName();
+	return f.substr(0, f.find_last_of("\\/"));
+}
 
 #define MAX_CONTROLLERS 4
 
 static int num_controllers = 0;
 static SDL_GameController** controllers = (SDL_GameController**)SDL_realloc(controllers, MAX_CONTROLLERS * sizeof(*controllers));
+
+// int t = 0;
+//static int t = 0;
 
 static void add_controller_mapping(char* guid)
 {
@@ -156,10 +174,10 @@ void key_down(int8_t code)
 	INPUT inp;
 	inp.type = INPUT_KEYBOARD;
 	inp.ki.wScan = code; // hardware scan code for key
+	inp.ki.wVk = 0; // virtual-key code, we're doing scan codes instead
 	inp.ki.time = 0;
 	inp.ki.dwExtraInfo = 0;
-	inp.ki.wVk = 0; // virtual-key code, we're doing scan codes instead
-	inp.ki.dwFlags = KEYEVENTF_SCANCODE;
+	inp.ki.dwFlags = KEYEVENTF_SCANCODE; // 0 for key press
 	SendInput(1, &inp, sizeof(INPUT));
 }
 
@@ -168,11 +186,109 @@ void key_up(int8_t code)
 	INPUT inp;
 	inp.type = INPUT_KEYBOARD;
 	inp.ki.wScan = code; // hardware scan code for key
+	inp.ki.wVk = 0; // virtual-key code, we're doing scan codes instead
 	inp.ki.time = 0;
 	inp.ki.dwExtraInfo = 0;
-	inp.ki.wVk = 0; // virtual-key code, we're doing scan codes instead
-	inp.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
+	inp.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
 	SendInput(1, &inp, sizeof(INPUT));
+}
+
+//void keys_down()
+//{
+//	//INPUT inp[2] = { 0 };
+//
+//	//inp[0].type = INPUT_KEYBOARD;
+//	//inp[0].ki.wScan = 91; // hardware scan code for LEFT WINDOWS key
+//	//inp[0].ki.time = 0;
+//	//inp[0].ki.dwExtraInfo = 0;
+//	//inp[0].ki.wVk = 0; // virtual-key code, we're doing scan codes instead
+//	//inp[0].ki.dwFlags = KEYEVENTF_SCANCODE;
+//
+//	//inp[1] = inp[0];
+//	//inp[1].ki.wScan = 34; // hardware scan code for G key
+//
+//	//SendInput(2, inp, sizeof(INPUT));
+//
+//	key_down(91);
+//	key_down(34);
+//}
+//
+//void keys_up()
+//{
+//	//INPUT inp[2] = { 0 };
+//
+//	//inp[0].type = INPUT_KEYBOARD;
+//	//inp[0].ki.wScan = 91; // hardware scan code for LEFT WINDOWS key
+//	//inp[0].ki.time = 0;
+//	//inp[0].ki.dwExtraInfo = 0;
+//	//inp[0].ki.wVk = 0; // virtual-key code, we're doing scan codes instead
+//	//inp[0].ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
+//
+//	//inp[1] = inp[0];
+//	//inp[1].ki.wScan = 34; // hardware scan code for G key
+//
+//	//SendInput(2, inp, sizeof(INPUT));
+//
+//	key_up(91);
+//	key_up(34);
+//}
+
+void open_xbox_game_bar()
+{
+	//keys_down();
+	//keys_up();
+
+	//INPUT inp;
+	//inp.type = INPUT_KEYBOARD;
+	//inp.ki.wScan = 91; // hardware scan code for LEFT WINDOWS key
+	//inp.ki.time = 0;
+	//inp.ki.dwExtraInfo = 0;
+	//inp.ki.wVk = 91; // virtual-key code for LEFT WINDOWS key
+	//inp.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_SCANCODE; // 0 for key press
+	//SendInput(1, &inp, sizeof(INPUT));
+
+	//key_down(34);
+
+	////INPUT inp;
+	//inp.type = INPUT_KEYBOARD;
+	//inp.ki.wScan = 91; // hardware scan code for LEFT WINDOWS key
+	//inp.ki.time = 0;
+	//inp.ki.dwExtraInfo = 0;
+	//inp.ki.wVk = 91; // virtual-key code for LEFT WINDOWS key
+	//inp.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
+	//SendInput(1, &inp, sizeof(INPUT));
+
+	//key_up(34);
+
+	INPUT inp[4] = { 0 };
+
+	// Press LEFT WINDOWS key
+	inp[0].type = INPUT_KEYBOARD;
+	inp[0].ki.wScan = 91; // hardware scan code for LEFT WINDOWS key
+	inp[0].ki.wVk = 91; // virtual-key code for LEFT WINDOWS key
+	inp[0].ki.time = 0;
+	inp[0].ki.dwExtraInfo = 0;
+	inp[0].ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_SCANCODE; // 0 for key press
+
+	// Press G key
+	inp[1] = inp[0];
+	inp[1].ki.wScan = 34; // hardware scan code for G key
+	inp[1].ki.wVk = 0; // virtual-key code, we're doing scan codes instead
+	inp[1].ki.dwFlags = KEYEVENTF_SCANCODE; // 0 for key press
+
+	// Release LEFT WINDOWS key
+	inp[2] = inp[0];
+	//inp[2].ki.wScan = 91; // hardware scan code for LEFT WINDOWS key
+	//inp[2].ki.wVk = 91; // virtual-key code for LEFT WINDOWS key
+	inp[2].ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
+
+	// Release G key
+	inp[3] = inp[1];
+	//inp[3].ki.wScan = 34; // hardware scan code for G key
+	//inp[3].ki.wVk = 0; // virtual-key code, we're doing scan codes instead
+	inp[3].ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
+
+	SendInput(4, inp, sizeof(INPUT));
 }
 
 
@@ -189,6 +305,7 @@ void key_tap(int8_t code, int64_t delay, int64_t duration)
 struct PlayerSettings
 {
 	int64_t button;
+	int64_t xbox_game_bar;
 	int64_t key;
 	int64_t hold_mode;
 	int64_t longpress_key;
@@ -239,20 +356,54 @@ struct GlobalData
 		return dat;
 	}
 
-	bool inline is_button_pressed(int i)
+	bool inline is_xbox_button_pressed(int i)
 	{
-		GlobalData& d = GlobalData::get();
-		return SDL_GameControllerGetButton(controllers[i], (d.settings[i].button == 1 ? SDL_CONTROLLER_BUTTON_GUIDE : SDL_CONTROLLER_BUTTON_MISC1)) == SDL_PRESSED;
+		return SDL_GameControllerGetButton(controllers[i], SDL_CONTROLLER_BUTTON_GUIDE) == SDL_PRESSED;
+	}
+
+	bool inline is_share_button_pressed(int i)
+	{
+		return SDL_GameControllerGetButton(controllers[i], SDL_CONTROLLER_BUTTON_MISC1) == SDL_PRESSED;
 	}
 
 	void update()
 	{
+		//t++;
+
 		SDL_JoystickUpdate();
 		update_controllers();
 
+		GlobalData& d = GlobalData::get();
+
 		for (int i = 0; i < num_controllers; ++i)
 		{
-			bool button_pressed_now = is_button_pressed(i);
+			if (d.settings[i].button == 0 && d.settings[i].xbox_game_bar == 1)
+			{
+				bool xbox_button_pressed = is_xbox_button_pressed(i);
+
+				//if (xbox_button_pressed)
+				//{
+				//	SDL_Log("%d Xbox button pressed.\n", t);
+				//}
+				//else if (!xbox_button_pressed)
+				//{
+				//	SDL_Log("%d Xbox button released.\n", t);
+				//}
+
+				if (xbox_button_pressed && !was_xbox_button_pressed_prev[i])
+				{
+					//SDL_Log("Xbox button pressed.\n\n");
+				}
+				else if (!xbox_button_pressed && was_xbox_button_pressed_prev[i])
+				{
+					//SDL_Log("Xbox button released.\n\n");
+					open_xbox_game_bar();
+				}
+
+				was_xbox_button_pressed_prev[i] = xbox_button_pressed;
+			}
+
+			bool button_pressed_now = d.settings[i].button == 1 ? is_xbox_button_pressed(i) : is_share_button_pressed(i);
 
 			if (button_pressed_now && !was_button_pressed_prev[i])
 			{
@@ -272,17 +423,21 @@ struct GlobalData
 private:
 
 
-	bool was_button_pressed_prev[4] = { false, false, false, false };
+	bool was_xbox_button_pressed_prev[4] = { false };
+	bool was_button_pressed_prev[4] = { false };
 
 	GlobalData()
 	{
+		std::string path = GetExePath();
 		handy::io::INIFile ini;
-		if (!ini.loadFile("config.ini"))
+
+		if (!ini.loadFile(path + "\\config.ini"))
 		{
 			error("Couldn't load config.ini. Using defaults.");
 		}
 
 		settings[0].button             = ini.getInteger("player1", "button", 0);
+		settings[0].xbox_game_bar      = ini.getInteger("player1", "xbox_game_bar", 1);
 		settings[0].key                = ini.getInteger("player1", "key", 1);
 		settings[0].hold_mode          = ini.getInteger("player1", "hold_mode", 1);
 		settings[0].longpress_key      = ini.getInteger("player1", "longpress_key", 1);
@@ -290,6 +445,7 @@ private:
 		settings[0].delay              = ini.getInteger("player1", "delay", 0);
 
 		settings[1].button             = ini.getInteger("player2", "button", 0);
+		settings[1].xbox_game_bar      = ini.getInteger("player2", "xbox_game_bar", 1);
 		settings[1].key                = ini.getInteger("player2", "key", 1);
 		settings[1].hold_mode          = ini.getInteger("player2", "hold_mode", 1);
 		settings[1].longpress_key      = ini.getInteger("player2", "longpress_key", 1);
@@ -297,6 +453,7 @@ private:
 		settings[1].delay              = ini.getInteger("player2", "delay", 0);
 
 		settings[2].button             = ini.getInteger("player3", "button", 0);
+		settings[2].xbox_game_bar      = ini.getInteger("player3", "xbox_game_bar", 1);
 		settings[2].key                = ini.getInteger("player3", "key", 1);
 		settings[2].hold_mode          = ini.getInteger("player3", "hold_mode", 1);
 		settings[2].longpress_key      = ini.getInteger("player3", "longpress_key", 1);
@@ -304,6 +461,7 @@ private:
 		settings[2].delay              = ini.getInteger("player3", "delay", 0);
 
 		settings[3].button             = ini.getInteger("player4", "button", 0);
+		settings[3].xbox_game_bar      = ini.getInteger("player4", "xbox_game_bar", 1);
 		settings[3].key                = ini.getInteger("player4", "key", 1);
 		settings[3].hold_mode          = ini.getInteger("player4", "hold_mode", 1);
 		settings[3].longpress_key      = ini.getInteger("player4", "longpress_key", 1);
