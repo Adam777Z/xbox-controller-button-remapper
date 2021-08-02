@@ -39,9 +39,6 @@ std::string GetExePath()
 static int num_controllers = 0;
 static SDL_GameController** controllers = (SDL_GameController**)SDL_realloc(controllers, MAX_CONTROLLERS * sizeof(*controllers));
 
-// int t = 0;
-//static int t = 0;
-
 static void add_controller_mapping(char* guid)
 {
 	char mapping_string[1024];
@@ -90,15 +87,6 @@ static void add_controller(int i)
 		//SDL_Log("Couldn't open controller: %s\n", SDL_GetError());
 		return;
 	}
-	//else if (!SDL_GameControllerHasButton(controller, SDL_CONTROLLER_BUTTON_MISC1))
-	//{
-	//	SDL_Log("No compatible controller detected.");
-	//}
-
-	//if (SDL_GameControllerHasButton(controller, SDL_CONTROLLER_BUTTON_MISC1))
-	//{
-	//	SDL_Log("Compatible controller detected.\n");
-	//}
 
 	controllers[i] = controller;
 
@@ -193,73 +181,16 @@ void key_up(int8_t code)
 	SendInput(1, &inp, sizeof(INPUT));
 }
 
-//void keys_down()
-//{
-//	//INPUT inp[2] = { 0 };
-//
-//	//inp[0].type = INPUT_KEYBOARD;
-//	//inp[0].ki.wScan = 91; // hardware scan code for LEFT WINDOWS key
-//	//inp[0].ki.time = 0;
-//	//inp[0].ki.dwExtraInfo = 0;
-//	//inp[0].ki.wVk = 0; // virtual-key code, we're doing scan codes instead
-//	//inp[0].ki.dwFlags = KEYEVENTF_SCANCODE;
-//
-//	//inp[1] = inp[0];
-//	//inp[1].ki.wScan = 34; // hardware scan code for G key
-//
-//	//SendInput(2, inp, sizeof(INPUT));
-//
-//	key_down(91);
-//	key_down(34);
-//}
-//
-//void keys_up()
-//{
-//	//INPUT inp[2] = { 0 };
-//
-//	//inp[0].type = INPUT_KEYBOARD;
-//	//inp[0].ki.wScan = 91; // hardware scan code for LEFT WINDOWS key
-//	//inp[0].ki.time = 0;
-//	//inp[0].ki.dwExtraInfo = 0;
-//	//inp[0].ki.wVk = 0; // virtual-key code, we're doing scan codes instead
-//	//inp[0].ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
-//
-//	//inp[1] = inp[0];
-//	//inp[1].ki.wScan = 34; // hardware scan code for G key
-//
-//	//SendInput(2, inp, sizeof(INPUT));
-//
-//	key_up(91);
-//	key_up(34);
-//}
+void key_tap(int8_t code, int64_t delay, int64_t duration)
+{
+	std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+	key_down(code);
+	std::this_thread::sleep_for(std::chrono::milliseconds(duration));
+	key_up(code);
+}
 
 void open_xbox_game_bar()
 {
-	//keys_down();
-	//keys_up();
-
-	//INPUT inp;
-	//inp.type = INPUT_KEYBOARD;
-	//inp.ki.wScan = 91; // hardware scan code for LEFT WINDOWS key
-	//inp.ki.time = 0;
-	//inp.ki.dwExtraInfo = 0;
-	//inp.ki.wVk = 91; // virtual-key code for LEFT WINDOWS key
-	//inp.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_SCANCODE; // 0 for key press
-	//SendInput(1, &inp, sizeof(INPUT));
-
-	//key_down(34);
-
-	////INPUT inp;
-	//inp.type = INPUT_KEYBOARD;
-	//inp.ki.wScan = 91; // hardware scan code for LEFT WINDOWS key
-	//inp.ki.time = 0;
-	//inp.ki.dwExtraInfo = 0;
-	//inp.ki.wVk = 91; // virtual-key code for LEFT WINDOWS key
-	//inp.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
-	//SendInput(1, &inp, sizeof(INPUT));
-
-	//key_up(34);
-
 	INPUT inp[4] = { 0 };
 
 	// Press LEFT WINDOWS key
@@ -289,15 +220,6 @@ void open_xbox_game_bar()
 	inp[3].ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
 
 	SendInput(4, inp, sizeof(INPUT));
-}
-
-
-void key_tap(int8_t code, int64_t delay, int64_t duration)
-{
-	std::this_thread::sleep_for(std::chrono::milliseconds(delay));
-	key_down(code);
-	std::this_thread::sleep_for(std::chrono::milliseconds(duration));
-	key_up(code);
 }
 
 
@@ -368,8 +290,6 @@ struct GlobalData
 
 	void update()
 	{
-		//t++;
-
 		SDL_JoystickUpdate();
 		update_controllers();
 
@@ -381,20 +301,7 @@ struct GlobalData
 			{
 				bool xbox_button_pressed = is_xbox_button_pressed(i);
 
-				//if (xbox_button_pressed)
-				//{
-				//	SDL_Log("%d Xbox button pressed.\n", t);
-				//}
-				//else if (!xbox_button_pressed)
-				//{
-				//	SDL_Log("%d Xbox button released.\n", t);
-				//}
-
-				if (xbox_button_pressed && !was_xbox_button_pressed_prev[i])
-				{
-					//SDL_Log("Xbox button pressed.\n\n");
-				}
-				else if (!xbox_button_pressed && was_xbox_button_pressed_prev[i])
+				if (!xbox_button_pressed && was_xbox_button_pressed_prev[i])
 				{
 					//SDL_Log("Xbox button released.\n\n");
 					open_xbox_game_bar();
@@ -476,7 +383,7 @@ private:
 
 #define WM_SYSICON (WM_USER + 1)
 
-/* Variables */
+// Variables
 HWND hWnd;
 HINSTANCE hCurrentInstance;
 HMENU hMenu;
@@ -484,7 +391,7 @@ NOTIFYICONDATA notifyIconData;
 TCHAR szTIP[64] = TEXT("Xbox Controller button remapper");
 char szClassName[] = "Xbox Controller button remapper";
 
-/* Procedures */
+// Procedures
 LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
 
 
