@@ -90,19 +90,14 @@ static void add_controller(int i)
 
 	controllers[i] = controller;
 
-	num_controllers = SDL_NumJoysticks();
+	num_controllers = SDL_NumJoysticks() > MAX_CONTROLLERS ? MAX_CONTROLLERS : SDL_NumJoysticks();
 
 	//SDL_Log("Opened controller: %s\n", SDL_GameControllerName(controller));
 }
 
 static void add_controllers()
 {
-	num_controllers = SDL_NumJoysticks();
-
-	if (num_controllers > MAX_CONTROLLERS)
-	{
-		num_controllers = MAX_CONTROLLERS;
-	}
+	num_controllers = SDL_NumJoysticks() > MAX_CONTROLLERS ? MAX_CONTROLLERS : SDL_NumJoysticks();
 
 	for (int i = 0; i < num_controllers; ++i)
 	{
@@ -123,7 +118,7 @@ static void close_controller(int i)
 
 	controllers[i] = NULL;
 
-	num_controllers = SDL_NumJoysticks();
+	num_controllers = SDL_NumJoysticks() > MAX_CONTROLLERS ? MAX_CONTROLLERS : SDL_NumJoysticks();
 
 	//SDL_Log("Closed controller: %s\n", controller_name);
 }
@@ -138,7 +133,9 @@ static void close_controllers()
 
 static void update_controllers()
 {
-	if (SDL_NumJoysticks() != num_controllers)
+	int num_controllers_now = SDL_NumJoysticks() > MAX_CONTROLLERS ? MAX_CONTROLLERS : SDL_NumJoysticks();
+
+	if (num_controllers_now != num_controllers)
 	{
 		close_controllers();
 		add_controllers();
