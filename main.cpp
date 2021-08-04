@@ -37,7 +37,7 @@ std::string GetExePath()
 #define MAX_CONTROLLERS 4
 
 static int num_controllers = 0;
-static SDL_GameController** controllers = (SDL_GameController**)SDL_realloc(controllers, MAX_CONTROLLERS * sizeof(*controllers));
+static SDL_GameController* controllers[MAX_CONTROLLERS];
 
 static void add_controller_mapping(char* guid)
 {
@@ -188,7 +188,7 @@ void key_tap(int8_t code, int64_t delay, int64_t duration)
 
 void open_xbox_game_bar()
 {
-	INPUT inp[4] = { 0 };
+	INPUT inp[4];
 
 	// Press LEFT WINDOWS key
 	inp[0].type = INPUT_KEYBOARD;
