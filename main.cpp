@@ -466,7 +466,7 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 				if (d.settings[i].longpress_key.size() != 0)
 				{
 					for (std::size_t j = 0; j < d.settings[i].longpress_key.size(); ++j) {
-						key_tap(d.settings[i].longpress_key[j], 0, 1);
+						key_tap(d.settings[i].longpress_key[j], d.settings[i].delay, 1);
 					}
 				}
 			}
@@ -475,7 +475,7 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 				if (d.settings[i].key.size() != 0)
 				{
 					for (std::size_t j = 0; j < d.settings[i].key.size(); ++j) {
-						key_tap(d.settings[i].key[j], 0, 1);
+						key_tap(d.settings[i].key[j], d.settings[i].delay, 1);
 					}
 				}
 			}
