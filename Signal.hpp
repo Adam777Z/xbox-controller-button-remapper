@@ -34,7 +34,9 @@ namespace handy
 					// After being moved, the object being moved from's destructor will still
 					// be called and, without this flag, would still disconnect the signal.
 					if (doDisconnection)
+					{
 						signal.disconnect(id);
+					}
 				}
 
 			private:
@@ -94,8 +96,12 @@ namespace handy
 					// Call all callbacks, provided they have a valid
 					// target (checked with operator bool() in std::function)
 					for (auto& callee : callees)
+					{
 						if (callee.second)
+						{
 							callee.second();
+						}
+					}
 				}
 
 			private:
@@ -177,13 +183,23 @@ namespace handy
 //					// Call all callbacks, provided they have a valid
 //					// target (checked with operator bool() in std::function)
 //					for (auto& callee : callees)
+//					{
 //						if (callee.second)
+//						{
 //							callee.second(firstArg, moreArgs...);
+//						}
+//					}
 //
 //					for (auto& condCallee : conditionalCallees)
+//					{
 //						if (condCallee.second.callee)
+//						{
 //							if (condCallee.second.condition == firstArg)
+//							{
 //								condCallee.second.callee(firstArg, moreArgs...);
+//							}
+//						}
+//					}
 //				}
 
 
@@ -192,14 +208,24 @@ namespace handy
 					// Call all callbacks, provided they have a valid
 					// target (checked with operator bool() in std::function)
 					for (auto& callee : callees)
+					{
 						if (callee.second)
+						{
 							callee.second(args...);
+						}
+					}
 
 					auto firstArg = meta::GetFirstVariadicValue(args...);
 					for (auto& condCallee : conditionalCallees)
+					{
 						if (condCallee.second.condition == firstArg)
+						{
 							if (condCallee.second.callee)
+							{
 								condCallee.second.callee(args...);
+							}
+						}
+					}
 				}
 
 
@@ -283,13 +309,23 @@ namespace handy
 ////					// Call all callbacks, provided they have a valid
 ////					// target (checked with operator bool() in std::function)
 ////					for (auto& callee : callees)
+////					{
 ////						if (callee.second)
+////						{
 ////							callee.second(firstArg, moreArgs...);
+////						}
+////					}
 ////
 ////					for (auto& condCallee : conditionalCallees)
+////					{
 ////						if (condCallee.second.callee)
+////						{
 ////							if (condCallee.second.condition == firstArg)
+////							{
 ////								condCallee.second.callee(firstArg, moreArgs...);
+////							}
+////						}
+////					}
 ////				}
 //
 //				SignalConnectionId_t makeConnId()

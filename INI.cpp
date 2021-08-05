@@ -7,6 +7,10 @@
 
 #include <algorithm>
 
+#include <vector>
+#include <stdexcept> // std::invalid_argument
+#include <limits> // std::numeric_limits
+
 namespace handy
 {
     namespace io
@@ -137,6 +141,38 @@ namespace handy
 
             return true;
         }
+
+		// PHP's explode function in C++
+		std::vector<std::string> explode(const std::string& delim, const std::string& str, const std::size_t limit = std::numeric_limits<std::size_t>::max())
+		{
+			if (delim.empty())
+			{
+				throw std::invalid_argument("Delimiter cannot be empty!");
+			}
+			std::vector<std::string> ret;
+			if (limit <= 0)
+			{
+				return ret;
+			}
+			std::size_t pos = 0;
+			std::size_t next_pos = str.find(delim);
+			if (next_pos == std::string::npos || limit == 1)
+			{
+				ret.push_back(str);
+				return ret;
+			}
+			for (;;)
+			{
+				ret.push_back(str.substr(pos, next_pos - pos));
+				pos = next_pos + delim.size();
+				if (ret.size() >= (limit - 1) || std::string::npos == (next_pos = str.find(delim, pos)))
+				{
+					ret.push_back(str.substr(pos));
+					return ret;
+				}
+			}
+		}
+
 
         bool INIFile::loadFile(const std::string& filePath)
         {
@@ -353,6 +389,54 @@ namespace handy
 				*wasRead = true;
 			}
 			return (*itemIter).second.intV;
+		}
+
+		std::vector<int> INIFile::getIntegers(const std::string& section, const std::string& item, std::vector<int> defaultVal, bool* wasRead) const
+		{
+			const auto& sectionIter = impl->sections.find(section);
+			if (sectionIter == impl->sections.end())
+			{
+				if (wasRead)
+				{
+					*wasRead = false;
+				}
+				return defaultVal;
+			}
+
+			const auto& entries = (*sectionIter).second.entries;
+			const auto& itemIter = entries.find(item);
+			if (itemIter == entries.cend())
+			{
+				if (wasRead)
+				{
+					*wasRead = false;
+				}
+				return defaultVal;
+			}
+
+			if (itemIter->second.type != INIEntry::type_t::intT && itemIter->second.type != INIEntry::type_t::stringT)
+			{
+				if (wasRead)
+				{
+					*wasRead = false;
+				}
+				return defaultVal;
+			}
+
+			if (wasRead)
+			{
+				*wasRead = true;
+			}
+
+			std::string value = (*itemIter).second.stringV;
+			std::vector<std::string> v = explode(",", value);
+			std::vector<int> key;
+
+			for (std::size_t i = 0; i < v.size(); ++i) {
+				key.push_back(std::stoi(v[i]));
+			}
+
+			return key;
 		}
 
 //

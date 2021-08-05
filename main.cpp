@@ -154,7 +154,7 @@ void fatal_error(const std::string&& text)
 	exit(1);
 }
 
-void key_down(int8_t code)
+void key_down(int code)
 {
 	INPUT inp;
 	inp.type = INPUT_KEYBOARD;
@@ -166,7 +166,7 @@ void key_down(int8_t code)
 	SendInput(1, &inp, sizeof(INPUT));
 }
 
-void key_up(int8_t code)
+void key_up(int code)
 {
 	INPUT inp;
 	inp.type = INPUT_KEYBOARD;
@@ -178,7 +178,7 @@ void key_up(int8_t code)
 	SendInput(1, &inp, sizeof(INPUT));
 }
 
-void key_tap(int8_t code, int64_t delay, int64_t duration)
+void key_tap(int code, int64_t delay, int64_t duration)
 {
 	std::this_thread::sleep_for(std::chrono::milliseconds(delay));
 	key_down(code);
@@ -223,13 +223,13 @@ void open_xbox_game_bar()
 
 struct PlayerSettings
 {
-	int64_t button;
-	int64_t xbox_game_bar;
-	int64_t key;
-	int64_t hold_mode;
-	int64_t longpress_key;
-	int64_t longpress_duration;
-	int64_t delay;
+	int64_t button = 0;
+	int64_t xbox_game_bar = 1;
+	std::vector<int> key = { 1 };
+	int64_t hold_mode = 1;
+	std::vector<int> longpress_key = { 1 };
+	int64_t longpress_duration = 1000;
+	int64_t delay = 0;
 };
 
 void print(int8_t v)
@@ -342,33 +342,33 @@ private:
 
 		settings[0].button             = ini.getInteger("player1", "button", 0);
 		settings[0].xbox_game_bar      = ini.getInteger("player1", "xbox_game_bar", 1);
-		settings[0].key                = ini.getInteger("player1", "key", 1);
+		settings[0].key                = ini.getIntegers("player1", "key", { 1 });
 		settings[0].hold_mode          = ini.getInteger("player1", "hold_mode", 1);
-		settings[0].longpress_key      = ini.getInteger("player1", "longpress_key", 1);
+		settings[0].longpress_key      = ini.getIntegers("player1", "longpress_key", { 1 });
 		settings[0].longpress_duration = ini.getInteger("player1", "longpress_duration", 1000);
 		settings[0].delay              = ini.getInteger("player1", "delay", 0);
 
 		settings[1].button             = ini.getInteger("player2", "button", 0);
 		settings[1].xbox_game_bar      = ini.getInteger("player2", "xbox_game_bar", 1);
-		settings[1].key                = ini.getInteger("player2", "key", 1);
+		settings[1].key                = ini.getIntegers("player2", "key", { 1 });
 		settings[1].hold_mode          = ini.getInteger("player2", "hold_mode", 1);
-		settings[1].longpress_key      = ini.getInteger("player2", "longpress_key", 1);
+		settings[1].longpress_key      = ini.getIntegers("player2", "longpress_key", { 1 });
 		settings[1].longpress_duration = ini.getInteger("player2", "longpress_duration", 1000);
 		settings[1].delay              = ini.getInteger("player2", "delay", 0);
 
 		settings[2].button             = ini.getInteger("player3", "button", 0);
 		settings[2].xbox_game_bar      = ini.getInteger("player3", "xbox_game_bar", 1);
-		settings[2].key                = ini.getInteger("player3", "key", 1);
+		settings[2].key                = ini.getIntegers("player3", "key", { 1 });
 		settings[2].hold_mode          = ini.getInteger("player3", "hold_mode", 1);
-		settings[2].longpress_key      = ini.getInteger("player3", "longpress_key", 1);
+		settings[2].longpress_key      = ini.getIntegers("player3", "longpress_key", { 1 });
 		settings[2].longpress_duration = ini.getInteger("player3", "longpress_duration", 1000);
 		settings[2].delay              = ini.getInteger("player3", "delay", 0);
 
 		settings[3].button             = ini.getInteger("player4", "button", 0);
 		settings[3].xbox_game_bar      = ini.getInteger("player4", "xbox_game_bar", 1);
-		settings[3].key                = ini.getInteger("player4", "key", 1);
+		settings[3].key                = ini.getIntegers("player4", "key", { 1 });
 		settings[3].hold_mode          = ini.getInteger("player4", "hold_mode", 1);
-		settings[3].longpress_key      = ini.getInteger("player4", "longpress_key", 1);
+		settings[3].longpress_key      = ini.getIntegers("player4", "longpress_key", { 1 });
 		settings[3].longpress_duration = ini.getInteger("player4", "longpress_duration", 1000);
 		settings[3].delay              = ini.getInteger("player4", "delay", 0);
 
@@ -434,9 +434,11 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 	{
 		if (d.settings[i].hold_mode == 1)
 		{
-			if (d.settings[i].key != 0)
+			if (d.settings[i].key.size() != 0)
 			{
-				key_down(d.settings[i].key);
+				for (std::size_t j = 0; j < d.settings[i].key.size(); ++j) {
+					key_down(d.settings[i].key[j]);
+				}
 			}
 		}
 		else if (d.settings[i].hold_mode == 2)
@@ -449,23 +451,32 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 	{
 		if (d.settings[i].hold_mode == 1)
 		{
-			key_up(d.settings[i].key);
+			if (d.settings[i].key.size() != 0)
+			{
+				for (std::size_t j = 0; j < d.settings[i].key.size(); ++j) {
+					key_up(d.settings[i].key[j]);
+				}
+			}
 		}
 		else if (d.settings[i].hold_mode == 2)
 		{
 			int64_t ms = (std::chrono::duration_cast<std::chrono::milliseconds>(hrc::now() - button_depressed[i])).count();
 			if (ms >= d.settings[i].longpress_duration)
 			{
-				if (d.settings[i].longpress_key != 0)
+				if (d.settings[i].longpress_key.size() != 0)
 				{
-					key_tap(d.settings[i].longpress_key, 0, 1);
+					for (std::size_t j = 0; j < d.settings[i].longpress_key.size(); ++j) {
+						key_tap(d.settings[i].longpress_key[j], 0, 1);
+					}
 				}
 			}
 			else
 			{
-				if (d.settings[i].key != 0)
+				if (d.settings[i].key.size() != 0)
 				{
-					key_tap(d.settings[i].key, 0, 1);
+					for (std::size_t j = 0; j < d.settings[i].key.size(); ++j) {
+						key_tap(d.settings[i].key[j], 0, 1);
+					}
 				}
 			}
 		}
