@@ -230,6 +230,7 @@ struct PlayerSettings
 	std::vector<int> longpress_key = { 1 };
 	int64_t longpress_duration = 1000;
 	int64_t delay = 0;
+	int64_t duration = 1;
 };
 
 void print(int8_t v)
@@ -347,6 +348,7 @@ private:
 		settings[0].longpress_key      = ini.getIntegers("player1", "longpress_key", { 1 });
 		settings[0].longpress_duration = ini.getInteger("player1", "longpress_duration", 1000);
 		settings[0].delay              = ini.getInteger("player1", "delay", 0);
+		settings[0].duration           = ini.getInteger("player1", "duration", 1);
 
 		settings[1].button             = ini.getInteger("player2", "button", 0);
 		settings[1].xbox_game_bar      = ini.getInteger("player2", "xbox_game_bar", 1);
@@ -355,6 +357,7 @@ private:
 		settings[1].longpress_key      = ini.getIntegers("player2", "longpress_key", { 1 });
 		settings[1].longpress_duration = ini.getInteger("player2", "longpress_duration", 1000);
 		settings[1].delay              = ini.getInteger("player2", "delay", 0);
+		settings[1].duration           = ini.getInteger("player2", "duration", 1);
 
 		settings[2].button             = ini.getInteger("player3", "button", 0);
 		settings[2].xbox_game_bar      = ini.getInteger("player3", "xbox_game_bar", 1);
@@ -363,6 +366,7 @@ private:
 		settings[2].longpress_key      = ini.getIntegers("player3", "longpress_key", { 1 });
 		settings[2].longpress_duration = ini.getInteger("player3", "longpress_duration", 1000);
 		settings[2].delay              = ini.getInteger("player3", "delay", 0);
+		settings[2].duration           = ini.getInteger("player3", "duration", 1);
 
 		settings[3].button             = ini.getInteger("player4", "button", 0);
 		settings[3].xbox_game_bar      = ini.getInteger("player4", "xbox_game_bar", 1);
@@ -371,6 +375,7 @@ private:
 		settings[3].longpress_key      = ini.getIntegers("player4", "longpress_key", { 1 });
 		settings[3].longpress_duration = ini.getInteger("player4", "longpress_duration", 1000);
 		settings[3].delay              = ini.getInteger("player4", "delay", 0);
+		settings[3].duration           = ini.getInteger("player4", "duration", 1);
 
 
 	}
@@ -466,7 +471,7 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 				if (d.settings[i].longpress_key.size() != 0)
 				{
 					for (std::size_t j = 0; j < d.settings[i].longpress_key.size(); ++j) {
-						key_tap(d.settings[i].longpress_key[j], d.settings[i].delay, 1);
+						key_tap(d.settings[i].longpress_key[j], d.settings[i].delay, d.settings[i].duration);
 					}
 				}
 			}
@@ -475,7 +480,7 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 				if (d.settings[i].key.size() != 0)
 				{
 					for (std::size_t j = 0; j < d.settings[i].key.size(); ++j) {
-						key_tap(d.settings[i].key[j], d.settings[i].delay, 1);
+						key_tap(d.settings[i].key[j], d.settings[i].delay, d.settings[i].duration);
 					}
 				}
 			}
