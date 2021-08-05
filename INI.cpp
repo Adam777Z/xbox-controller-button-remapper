@@ -428,6 +428,11 @@ namespace handy
 				*wasRead = true;
 			}
 
+			if ((*itemIter).second.intV == 0)
+			{
+				return {};
+			}
+
 			std::string value = (*itemIter).second.stringV;
 			std::vector<std::string> v = explode(",", value);
 			std::vector<int> key;
