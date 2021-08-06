@@ -178,12 +178,19 @@ void key_up(int code)
 	SendInput(1, &inp, sizeof(INPUT));
 }
 
-void key_tap(int code, int64_t delay, int64_t duration)
+void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
 {
 	std::this_thread::sleep_for(std::chrono::milliseconds(delay));
-	key_down(code);
+
+	for (std::size_t i = 0; i < code.size(); ++i) {
+		key_down(code[i]);
+	}
+	
 	std::this_thread::sleep_for(std::chrono::milliseconds(duration));
-	key_up(code);
+
+	for (std::size_t i = 0; i < code.size(); ++i) {
+		key_up(code[i]);
+	}
 }
 
 void open_xbox_game_bar()
@@ -470,18 +477,14 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 			{
 				if (d.settings[i].longpress_key.size() != 0)
 				{
-					for (std::size_t j = 0; j < d.settings[i].longpress_key.size(); ++j) {
-						key_tap(d.settings[i].longpress_key[j], d.settings[i].delay, d.settings[i].duration);
-					}
+					key_tap(d.settings[i].longpress_key, d.settings[i].delay, d.settings[i].duration);
 				}
 			}
 			else
 			{
 				if (d.settings[i].key.size() != 0)
 				{
-					for (std::size_t j = 0; j < d.settings[i].key.size(); ++j) {
-						key_tap(d.settings[i].key[j], d.settings[i].delay, d.settings[i].duration);
-					}
+					key_tap(d.settings[i].key, d.settings[i].delay, d.settings[i].duration);
 				}
 			}
 		}
