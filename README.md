@@ -17,7 +17,7 @@ Configure the program using the config.ini file.
 - [Microsoft Visual C++ Redistributable for Visual Studio 2019 x64](https://visualstudio.microsoft.com/downloads/#microsoft-visual-c-redistributable-for-visual-studio-2019)
 
 ## Download
-Download the latest version under **Releases**.
+Download the latest version on the **Releases** page.
 
 ## How to build
 1. Have [SDL](https://github.com/libsdl-org/SDL) in the SDL folder
