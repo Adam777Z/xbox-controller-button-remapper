@@ -16,6 +16,9 @@ Configure the program using the config.ini file.
 - Windows 10 64-bit
 - [Microsoft Visual C++ Redistributable for Visual Studio 2019 x64](https://visualstudio.microsoft.com/downloads/#microsoft-visual-c-redistributable-for-visual-studio-2019)
 
+## Download
+Download the latest version under **Releases**.
+
 ## How to build
 1. Have [SDL](https://github.com/libsdl-org/SDL) in the SDL folder
 2. Open the Visual Studio Solution file and build
