@@ -35,6 +35,7 @@ std::string GetExePath()
 }
 
 #define MAX_CONTROLLERS 4
+#define XBOX_GAME_BAR_KEY 255
 
 static int num_controllers = 0;
 static SDL_GameController* controllers[MAX_CONTROLLERS];
@@ -53,8 +54,10 @@ static void add_controller_mapping(char* guid)
 
 static int find_controller(SDL_JoystickID controller_id)
 {
-	for (int i = 0; i < num_controllers; ++i) {
-		if (controller_id == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controllers[i]))) {
+	for (int i = 0; i < num_controllers; ++i)
+	{
+		if (controller_id == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controllers[i])))
+		{
 			return i;
 		}
 	}
@@ -64,12 +67,14 @@ static int find_controller(SDL_JoystickID controller_id)
 static void add_controller(int i)
 {
 	SDL_JoystickID controller_id = SDL_JoystickGetDeviceInstanceID(i);
-	if (controller_id < 0) {
+	if (controller_id < 0)
+	{
 		//SDL_Log("Couldn't get controller ID: %s\n", SDL_GetError());
 		return;
 	}
 
-	if (find_controller(controller_id) >= 0) {
+	if (find_controller(controller_id) >= 0)
+	{
 		// We already have this controller
 		return;
 	}
@@ -83,7 +88,8 @@ static void add_controller(int i)
 	//SDL_Log("Mapping: %s\n", SDL_GameControllerMappingForGUID(SDL_JoystickGetDeviceGUID(i)));
 
 	SDL_GameController* controller = SDL_GameControllerOpen(i);
-	if (!controller) {
+	if (!controller)
+	{
 		//SDL_Log("Couldn't open controller: %s\n", SDL_GetError());
 		return;
 	}
@@ -154,45 +160,6 @@ void fatal_error(const std::string&& text)
 	exit(1);
 }
 
-void key_down(int code)
-{
-	INPUT inp;
-	inp.type = INPUT_KEYBOARD;
-	inp.ki.wScan = code; // hardware scan code for key
-	inp.ki.wVk = 0; // virtual-key code, we're doing scan codes instead
-	inp.ki.time = 0;
-	inp.ki.dwExtraInfo = 0;
-	inp.ki.dwFlags = KEYEVENTF_SCANCODE; // 0 for key press
-	SendInput(1, &inp, sizeof(INPUT));
-}
-
-void key_up(int code)
-{
-	INPUT inp;
-	inp.type = INPUT_KEYBOARD;
-	inp.ki.wScan = code; // hardware scan code for key
-	inp.ki.wVk = 0; // virtual-key code, we're doing scan codes instead
-	inp.ki.time = 0;
-	inp.ki.dwExtraInfo = 0;
-	inp.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
-	SendInput(1, &inp, sizeof(INPUT));
-}
-
-void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
-{
-	std::this_thread::sleep_for(std::chrono::milliseconds(delay));
-
-	for (std::size_t i = 0; i < code.size(); ++i) {
-		key_down(code[i]);
-	}
-	
-	std::this_thread::sleep_for(std::chrono::milliseconds(duration));
-
-	for (std::size_t i = 0; i < code.size(); ++i) {
-		key_up(code[i]);
-	}
-}
-
 void open_xbox_game_bar()
 {
 	INPUT inp[4];
@@ -224,20 +191,78 @@ void open_xbox_game_bar()
 	inp[3].ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
 
 	SendInput(4, inp, sizeof(INPUT));
+
+	//SDL_Log("Opened Xbox Game Bar.\n\n");
+}
+
+void key_down(int code)
+{
+	INPUT inp;
+	inp.type = INPUT_KEYBOARD;
+	inp.ki.wScan = code; // hardware scan code for key
+	inp.ki.wVk = 0; // virtual-key code, we're doing scan codes instead
+	inp.ki.time = 0;
+	inp.ki.dwExtraInfo = 0;
+	inp.ki.dwFlags = KEYEVENTF_SCANCODE; // 0 for key press
+	SendInput(1, &inp, sizeof(INPUT));
+}
+
+void key_up(int code)
+{
+	INPUT inp;
+	inp.type = INPUT_KEYBOARD;
+	inp.ki.wScan = code; // hardware scan code for key
+	inp.ki.wVk = 0; // virtual-key code, we're doing scan codes instead
+	inp.ki.time = 0;
+	inp.ki.dwExtraInfo = 0;
+	inp.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
+	SendInput(1, &inp, sizeof(INPUT));
+}
+
+void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
+{
+	std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+
+	for (std::size_t i = 0; i < code.size(); ++i)
+	{
+		// Open Xbox Game Bar on button release only
+		if (code[i] != XBOX_GAME_BAR_KEY)
+		{
+			key_down(code[i]);
+		}
+	}
+	
+	std::this_thread::sleep_for(std::chrono::milliseconds(duration));
+
+	for (std::size_t i = 0; i < code.size(); ++i)
+	{
+		if (code[i] == XBOX_GAME_BAR_KEY)
+		{
+			open_xbox_game_bar();
+		}
+		else
+		{
+			key_up(code[i]);
+		}
+	}
 }
 
 
 
-struct PlayerSettings
+struct KeySettings
 {
-	int64_t button = 0;
-	int64_t xbox_game_bar = 1;
 	std::vector<int> key = { 1 };
 	int64_t hold_mode = 1;
 	std::vector<int> longpress_key = { 1 };
 	int64_t longpress_duration = 1000;
 	int64_t delay = 0;
 	int64_t duration = 1;
+};
+
+struct ControllerSettings
+{
+	KeySettings share;
+	KeySettings xbox;
 };
 
 void print(int8_t v)
@@ -271,9 +296,9 @@ void println(T v)
 struct GlobalData
 {
 
-	PlayerSettings settings[4];
-	handy::arch::Signal<void(int which)> button_pressed;
-	handy::arch::Signal<void(int which)> button_released;
+	ControllerSettings settings[4];
+	handy::arch::Signal<void(int controller, int button)> button_pressed;
+	handy::arch::Signal<void(int controller, int button)> button_released;
 
 
 	// Singleton
@@ -296,39 +321,30 @@ struct GlobalData
 	void update()
 	{
 		SDL_JoystickUpdate();
+
 		update_controllers();
 
 		GlobalData& d = GlobalData::get();
 
 		for (int i = 0; i < num_controllers; ++i)
 		{
-			if (d.settings[i].button == 0 && d.settings[i].xbox_game_bar == 1)
-			{
-				bool xbox_button_pressed = is_xbox_button_pressed(i);
+			bool button_pressed_now[2] = { is_share_button_pressed(i), is_xbox_button_pressed(i) };
 
-				if (!xbox_button_pressed && was_xbox_button_pressed_prev[i])
+			for (int j = 0; j < 2; ++j)
+			{
+				if (button_pressed_now[j] && !was_button_pressed_prev[i][j])
 				{
-					//SDL_Log("Xbox button released.\n\n");
-					open_xbox_game_bar();
+					//SDL_Log("Button pressed.\n");
+					button_pressed.call(i, j);
+				}
+				else if (!button_pressed_now[j] && was_button_pressed_prev[i][j])
+				{
+					//SDL_Log("Button released.\n");
+					button_released.call(i, j);
 				}
 
-				was_xbox_button_pressed_prev[i] = xbox_button_pressed;
+				was_button_pressed_prev[i][j] = button_pressed_now[j];
 			}
-
-			bool button_pressed_now = d.settings[i].button == 1 ? is_xbox_button_pressed(i) : is_share_button_pressed(i);
-
-			if (button_pressed_now && !was_button_pressed_prev[i])
-			{
-				//SDL_Log("Button pressed.\n");
-				button_pressed.call(i);
-			}
-			else if (!button_pressed_now && was_button_pressed_prev[i])
-			{
-				//SDL_Log("Button released.\n");
-				button_released.call(i);
-			}
-
-			was_button_pressed_prev[i] = button_pressed_now;
 		}
 	}
 
@@ -336,7 +352,7 @@ private:
 
 
 	bool was_xbox_button_pressed_prev[4] = { false };
-	bool was_button_pressed_prev[4] = { false };
+	bool was_button_pressed_prev[4][2] = { false };
 
 	GlobalData()
 	{
@@ -348,41 +364,57 @@ private:
 			error("Couldn't load config.ini. Using defaults.");
 		}
 
-		settings[0].button             = ini.getInteger("player1", "button", 0);
-		settings[0].xbox_game_bar      = ini.getInteger("player1", "xbox_game_bar", 1);
-		settings[0].key                = ini.getIntegers("player1", "key", { 1 });
-		settings[0].hold_mode          = ini.getInteger("player1", "hold_mode", 1);
-		settings[0].longpress_key      = ini.getIntegers("player1", "longpress_key", { 1 });
-		settings[0].longpress_duration = ini.getInteger("player1", "longpress_duration", 1000);
-		settings[0].delay              = ini.getInteger("player1", "delay", 0);
-		settings[0].duration           = ini.getInteger("player1", "duration", 1);
+		settings[0].share.key                = ini.getIntegers("controller1", "share_key", { 1 });
+		settings[0].share.hold_mode          = ini.getInteger("controller1", "share_hold_mode", 1);
+		settings[0].share.longpress_key      = ini.getIntegers("controller1", "share_longpress_key", { 1 });
+		settings[0].share.longpress_duration = ini.getInteger("controller1", "share_longpress_duration", 1000);
+		settings[0].share.delay              = ini.getInteger("controller1", "share_delay", 0);
+		settings[0].share.duration           = ini.getInteger("controller1", "share_duration", 1);
+		settings[0].xbox.key                 = ini.getIntegers("controller1", "xbox_key", { 255 });
+		settings[0].xbox.hold_mode           = ini.getInteger("controller1", "xbox_hold_mode", 1);
+		settings[0].xbox.longpress_key       = ini.getIntegers("controller1", "xbox_longpress_key", { 1 });
+		settings[0].xbox.longpress_duration  = ini.getInteger("controller1", "xbox_longpress_duration", 1000);
+		settings[0].xbox.delay               = ini.getInteger("controller1", "xbox_delay", 0);
+		settings[0].xbox.duration            = ini.getInteger("controller1", "xbox_duration", 1);
 
-		settings[1].button             = ini.getInteger("player2", "button", 0);
-		settings[1].xbox_game_bar      = ini.getInteger("player2", "xbox_game_bar", 1);
-		settings[1].key                = ini.getIntegers("player2", "key", { 1 });
-		settings[1].hold_mode          = ini.getInteger("player2", "hold_mode", 1);
-		settings[1].longpress_key      = ini.getIntegers("player2", "longpress_key", { 1 });
-		settings[1].longpress_duration = ini.getInteger("player2", "longpress_duration", 1000);
-		settings[1].delay              = ini.getInteger("player2", "delay", 0);
-		settings[1].duration           = ini.getInteger("player2", "duration", 1);
+		settings[1].share.key                = ini.getIntegers("controller2", "share_key", { 1 });
+		settings[1].share.hold_mode          = ini.getInteger("controller2", "share_hold_mode", 1);
+		settings[1].share.longpress_key      = ini.getIntegers("controller2", "share_longpress_key", { 1 });
+		settings[1].share.longpress_duration = ini.getInteger("controller2", "share_longpress_duration", 1000);
+		settings[1].share.delay              = ini.getInteger("controller2", "share_delay", 0);
+		settings[1].share.duration           = ini.getInteger("controller2", "share_duration", 1);
+		settings[1].xbox.key                 = ini.getIntegers("controller2", "xbox_key", { 255 });
+		settings[1].xbox.hold_mode           = ini.getInteger("controller2", "xbox_hold_mode", 1);
+		settings[1].xbox.longpress_key       = ini.getIntegers("controller2", "xbox_longpress_key", { 1 });
+		settings[1].xbox.longpress_duration  = ini.getInteger("controller2", "xbox_longpress_duration", 1000);
+		settings[1].xbox.delay               = ini.getInteger("controller2", "xbox_delay", 0);
+		settings[1].xbox.duration            = ini.getInteger("controller2", "xbox_duration", 1);
 
-		settings[2].button             = ini.getInteger("player3", "button", 0);
-		settings[2].xbox_game_bar      = ini.getInteger("player3", "xbox_game_bar", 1);
-		settings[2].key                = ini.getIntegers("player3", "key", { 1 });
-		settings[2].hold_mode          = ini.getInteger("player3", "hold_mode", 1);
-		settings[2].longpress_key      = ini.getIntegers("player3", "longpress_key", { 1 });
-		settings[2].longpress_duration = ini.getInteger("player3", "longpress_duration", 1000);
-		settings[2].delay              = ini.getInteger("player3", "delay", 0);
-		settings[2].duration           = ini.getInteger("player3", "duration", 1);
+		settings[2].share.key                = ini.getIntegers("controller3", "share_key", { 1 });
+		settings[2].share.hold_mode          = ini.getInteger("controller3", "share_hold_mode", 1);
+		settings[2].share.longpress_key      = ini.getIntegers("controller3", "share_longpress_key", { 1 });
+		settings[2].share.longpress_duration = ini.getInteger("controller3", "share_longpress_duration", 1000);
+		settings[2].share.delay              = ini.getInteger("controller3", "share_delay", 0);
+		settings[2].share.duration           = ini.getInteger("controller3", "share_duration", 1);
+		settings[2].xbox.key                 = ini.getIntegers("controller3", "xbox_key", { 255 });
+		settings[2].xbox.hold_mode           = ini.getInteger("controller3", "xbox_hold_mode", 1);
+		settings[2].xbox.longpress_key       = ini.getIntegers("controller3", "xbox_longpress_key", { 1 });
+		settings[2].xbox.longpress_duration  = ini.getInteger("controller3", "xbox_longpress_duration", 1000);
+		settings[2].xbox.delay               = ini.getInteger("controller3", "xbox_delay", 0);
+		settings[2].xbox.duration            = ini.getInteger("controller3", "xbox_duration", 1);
 
-		settings[3].button             = ini.getInteger("player4", "button", 0);
-		settings[3].xbox_game_bar      = ini.getInteger("player4", "xbox_game_bar", 1);
-		settings[3].key                = ini.getIntegers("player4", "key", { 1 });
-		settings[3].hold_mode          = ini.getInteger("player4", "hold_mode", 1);
-		settings[3].longpress_key      = ini.getIntegers("player4", "longpress_key", { 1 });
-		settings[3].longpress_duration = ini.getInteger("player4", "longpress_duration", 1000);
-		settings[3].delay              = ini.getInteger("player4", "delay", 0);
-		settings[3].duration           = ini.getInteger("player4", "duration", 1);
+		settings[3].share.key                = ini.getIntegers("controller4", "share_key", { 1 });
+		settings[3].share.hold_mode          = ini.getInteger("controller4", "share_hold_mode", 1);
+		settings[3].share.longpress_key      = ini.getIntegers("controller4", "share_longpress_key", { 1 });
+		settings[3].share.longpress_duration = ini.getInteger("controller4", "share_longpress_duration", 1000);
+		settings[3].share.delay              = ini.getInteger("controller4", "share_delay", 0);
+		settings[3].share.duration           = ini.getInteger("controller4", "share_duration", 1);
+		settings[3].xbox.key                 = ini.getIntegers("controller4", "xbox_key", { 255 });
+		settings[3].xbox.hold_mode           = ini.getInteger("controller4", "xbox_hold_mode", 1);
+		settings[3].xbox.longpress_key       = ini.getIntegers("controller4", "xbox_longpress_key", { 1 });
+		settings[3].xbox.longpress_duration  = ini.getInteger("controller4", "xbox_longpress_duration", 1000);
+		settings[3].xbox.delay               = ini.getInteger("controller4", "xbox_delay", 0);
+		settings[3].xbox.duration            = ini.getInteger("controller4", "xbox_duration", 1);
 
 
 	}
@@ -420,6 +452,12 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 		return 0;
 	}
 
+	if (!hMutex)
+	{
+		// Cannot create application mutex.
+		fatal_error("Error");
+	}
+
 	// This is the handle for our window
 	MSG messages; // Here messages to the application are saved
 	hCurrentInstance = hThisInstance;
@@ -442,58 +480,79 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 	hrc::time_point button_depressed[4] = { now, now, now, now };
 
 
-	d.button_pressed.connect([&](int i)
-	{
-		if (d.settings[i].hold_mode == 1)
+	d.button_pressed.connect([&](int i, int j)
 		{
-			if (d.settings[i].key.size() != 0)
-			{
-				for (std::size_t j = 0; j < d.settings[i].key.size(); ++j) {
-					key_down(d.settings[i].key[j]);
-				}
-			}
-		}
-		else if (d.settings[i].hold_mode == 2)
-		{
-			button_depressed[i] = hrc::now();
-		}
-	});
+			KeySettings settings = j == 1 ? d.settings[i].xbox : d.settings[i].share;
 
-	d.button_released.connect([&](int i)
-	{
-		if (d.settings[i].hold_mode == 1)
-		{
-			if (d.settings[i].key.size() != 0)
+			if (settings.hold_mode == 1)
 			{
-				for (std::size_t j = 0; j < d.settings[i].key.size(); ++j) {
-					key_up(d.settings[i].key[j]);
+				if (settings.key.size() != 0)
+				{
+					for (std::size_t k = 0; k < settings.key.size(); ++k)
+					{
+						// Open Xbox Game Bar on button release only
+						if (settings.key[k] != XBOX_GAME_BAR_KEY)
+						{
+							key_down(settings.key[k]);
+						}
+					}
+				}
+			}
+			else if (settings.hold_mode == 2)
+			{
+				button_depressed[i] = hrc::now();
+			}
+		}
+	);
+
+	d.button_released.connect([&](int i, int j)
+		{
+			KeySettings settings = j == 1 ? d.settings[i].xbox : d.settings[i].share;
+
+			if (settings.hold_mode == 1)
+			{
+				if (settings.key.size() != 0)
+				{
+					for (std::size_t k = 0; k < settings.key.size(); ++k)
+					{
+						if (settings.key[k] == XBOX_GAME_BAR_KEY)
+						{
+							open_xbox_game_bar();
+						}
+						else
+						{
+							key_up(settings.key[k]);
+						}
+					}
+				}
+			}
+			else if (settings.hold_mode == 2)
+			{
+				int64_t ms = (std::chrono::duration_cast<std::chrono::milliseconds>(hrc::now() - button_depressed[i])).count();
+
+				if (ms >= settings.longpress_duration)
+				{
+					if (settings.longpress_key.size() != 0)
+					{
+						key_tap(settings.longpress_key, settings.delay, settings.duration);
+					}
+				}
+				else
+				{
+					if (settings.key.size() != 0)
+					{
+						key_tap(settings.key, settings.delay, settings.duration);
+					}
 				}
 			}
 		}
-		else if (d.settings[i].hold_mode == 2)
-		{
-			int64_t ms = (std::chrono::duration_cast<std::chrono::milliseconds>(hrc::now() - button_depressed[i])).count();
-			if (ms >= d.settings[i].longpress_duration)
-			{
-				if (d.settings[i].longpress_key.size() != 0)
-				{
-					key_tap(d.settings[i].longpress_key, d.settings[i].delay, d.settings[i].duration);
-				}
-			}
-			else
-			{
-				if (d.settings[i].key.size() != 0)
-				{
-					key_tap(d.settings[i].key, d.settings[i].delay, d.settings[i].duration);
-				}
-			}
-		}
-	});
+	);
 
 	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
 
 	// Initialize SDL
-	if (SDL_Init(SDL_INIT_GAMECONTROLLER) < 0) {
+	if (SDL_Init(SDL_INIT_GAMECONTROLLER) < 0)
+	{
 		fatal_error(strcat("Couldn't initialize SDL: %s", SDL_GetError()));
 	}
 
