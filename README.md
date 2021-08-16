@@ -20,7 +20,9 @@ Configure the program using the config.ini file.
 Download the latest version on the **Releases** page.
 
 ## How to build
-1. Have [SDL](https://github.com/libsdl-org/SDL) in the SDL folder
+1. Have [SDL](https://github.com/libsdl-org/SDL) in the SDL folder:\
+SDL\include\
+SDL\VisualC\x64\Release
 2. Open the Visual Studio Solution file and build
 
 ## Credits
