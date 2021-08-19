@@ -35,7 +35,6 @@ std::string GetExePath()
 }
 
 #define MAX_CONTROLLERS 4
-#define XBOX_GAME_BAR_KEY 255
 
 static int num_controllers = 0;
 static SDL_GameController* controllers[MAX_CONTROLLERS];
@@ -160,39 +159,27 @@ void fatal_error(const std::string&& text)
 	exit(1);
 }
 
-void open_xbox_game_bar()
+bool is_open_xbox_game_bar_keys(std::vector<int> code)
 {
-	INPUT inp[4];
+	bool key1 = false;
+	bool key2 = false;
 
-	// Press LEFT WINDOWS key
-	inp[0].type = INPUT_KEYBOARD;
-	inp[0].ki.wScan = 91; // hardware scan code for LEFT WINDOWS key
-	inp[0].ki.wVk = 91; // virtual-key code for LEFT WINDOWS key
-	inp[0].ki.time = 0;
-	inp[0].ki.dwExtraInfo = 0;
-	inp[0].ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_SCANCODE; // 0 for key press
+	if (code.size() == 2)
+	{
+		for (std::size_t i = 0; i < code.size(); ++i)
+		{
+			if (code[i] == 91 || code[i] == 92)
+			{
+				key1 = true;
+			}
+			else if (code[i] == 34)
+			{
+				key2 = true;
+			}
+		}
+	}
 
-	// Press G key
-	inp[1] = inp[0];
-	inp[1].ki.wScan = 34; // hardware scan code for G key
-	inp[1].ki.wVk = 0; // virtual-key code, we're doing scan codes instead
-	inp[1].ki.dwFlags = KEYEVENTF_SCANCODE; // 0 for key press
-
-	// Release LEFT WINDOWS key
-	inp[2] = inp[0];
-	//inp[2].ki.wScan = 91; // hardware scan code for LEFT WINDOWS key
-	//inp[2].ki.wVk = 91; // virtual-key code for LEFT WINDOWS key
-	inp[2].ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
-
-	// Release G key
-	inp[3] = inp[1];
-	//inp[3].ki.wScan = 34; // hardware scan code for G key
-	//inp[3].ki.wVk = 0; // virtual-key code, we're doing scan codes instead
-	inp[3].ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
-
-	SendInput(4, inp, sizeof(INPUT));
-
-	//SDL_Log("Opened Xbox Game Bar.\n\n");
+	return key1 && key2;
 }
 
 void key_down(int code)
@@ -200,10 +187,21 @@ void key_down(int code)
 	INPUT inp;
 	inp.type = INPUT_KEYBOARD;
 	inp.ki.wScan = code; // hardware scan code for key
-	inp.ki.wVk = 0; // virtual-key code, we're doing scan codes instead
+
+	if (code == 91 || code == 92 || code == 93)
+	{
+		inp.ki.wVk = code; // virtual-key code
+		inp.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_SCANCODE; // 0 for key press
+	}
+	else
+	{
+		inp.ki.wVk = 0; // virtual-key code, we're doing scan codes instead
+		inp.ki.dwFlags = KEYEVENTF_SCANCODE; // 0 for key press
+	}
+
 	inp.ki.time = 0;
 	inp.ki.dwExtraInfo = 0;
-	inp.ki.dwFlags = KEYEVENTF_SCANCODE; // 0 for key press
+	
 	SendInput(1, &inp, sizeof(INPUT));
 }
 
@@ -212,10 +210,21 @@ void key_up(int code)
 	INPUT inp;
 	inp.type = INPUT_KEYBOARD;
 	inp.ki.wScan = code; // hardware scan code for key
-	inp.ki.wVk = 0; // virtual-key code, we're doing scan codes instead
+
+	if (code == 91 || code == 92 || code == 93)
+	{
+		inp.ki.wVk = code; // virtual-key code
+		inp.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
+	}
+	else
+	{
+		inp.ki.wVk = 0; // virtual-key code, we're doing scan codes instead
+		inp.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
+	}
+
 	inp.ki.time = 0;
 	inp.ki.dwExtraInfo = 0;
-	inp.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
+	
 	SendInput(1, &inp, sizeof(INPUT));
 }
 
@@ -223,10 +232,12 @@ void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
 {
 	std::this_thread::sleep_for(std::chrono::milliseconds(delay));
 
-	for (std::size_t i = 0; i < code.size(); ++i)
+	bool open_xbox_game_bar_keys = is_open_xbox_game_bar_keys(code);
+
+	// Open Xbox Game Bar on button release only
+	if (!open_xbox_game_bar_keys)
 	{
-		// Open Xbox Game Bar on button release only
-		if (code[i] != XBOX_GAME_BAR_KEY)
+		for (std::size_t i = 0; i < code.size(); ++i)
 		{
 			key_down(code[i]);
 		}
@@ -234,13 +245,23 @@ void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
 	
 	std::this_thread::sleep_for(std::chrono::milliseconds(duration));
 
-	for (std::size_t i = 0; i < code.size(); ++i)
+	if (open_xbox_game_bar_keys)
 	{
-		if (code[i] == XBOX_GAME_BAR_KEY)
+		for (std::size_t i = 0; i < code.size(); ++i)
 		{
-			open_xbox_game_bar();
+			key_down(code[i]);
 		}
-		else
+
+		for (std::size_t i = 0; i < code.size(); ++i)
+		{
+			key_up(code[i]);
+		}
+
+		//SDL_Log("Opened Xbox Game Bar.\n");
+	}
+	else
+	{
+		for (std::size_t i = 0; i < code.size(); ++i)
 		{
 			key_up(code[i]);
 		}
@@ -488,10 +509,10 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 			{
 				if (settings.key.size() != 0)
 				{
-					for (std::size_t k = 0; k < settings.key.size(); ++k)
+					// Open Xbox Game Bar on button release only
+					if (!is_open_xbox_game_bar_keys(settings.key))
 					{
-						// Open Xbox Game Bar on button release only
-						if (settings.key[k] != XBOX_GAME_BAR_KEY)
+						for (std::size_t k = 0; k < settings.key.size(); ++k)
 						{
 							key_down(settings.key[k]);
 						}
@@ -513,13 +534,13 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 			{
 				if (settings.key.size() != 0)
 				{
-					for (std::size_t k = 0; k < settings.key.size(); ++k)
+					if (is_open_xbox_game_bar_keys(settings.key))
 					{
-						if (settings.key[k] == XBOX_GAME_BAR_KEY)
-						{
-							open_xbox_game_bar();
-						}
-						else
+						key_tap(settings.key, 0, 1);
+					}
+					else
+					{
+						for (std::size_t k = 0; k < settings.key.size(); ++k)
 						{
 							key_up(settings.key[k]);
 						}
