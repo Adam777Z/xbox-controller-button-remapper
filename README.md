@@ -19,6 +19,9 @@ Configure the program using the config.ini file.
 ## Download
 Download the latest version on the [Releases](https://github.com/Adam777Z/xbox-controller-button-remapper/releases/latest) page.
 
+## Support and Feedback
+Available under [Discussions](https://github.com/Adam777Z/xbox-controller-button-remapper/discussions).
+
 ## How to build
 1. Have [SDL](https://github.com/libsdl-org/SDL) in the SDL folder:\
 SDL\include\
@@ -26,5 +29,6 @@ SDL\VisualC\x64\Release
 2. Open the Visual Studio Solution file and build
 
 ## Credits
-- [button_on_360_guide](https://www.reddit.com/r/emulation/comments/1goval/any_way_to_map_the_middle_xbox_360_button/camujj7/) ([GitHub](https://github.com/pinumbernumber/Xbox-360-Guide-Button-Remapper))
+- [button_on_360_guide](https://www.reddit.com/r/emulation/comments/1goval/any_way_to_map_the_middle_xbox_360_button/camujj7/) (GitHub: [1](https://github.com/pinumbernumber/Xbox-360-Guide-Button-Remapper), [2](https://github.com/CautemocSg/xbox-360-guide-remapper))\
+Thanks to the creator of the original program and the source code. I improved it.
 - [SDL](https://github.com/libsdl-org/SDL)
