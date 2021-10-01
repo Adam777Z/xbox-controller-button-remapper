@@ -9,6 +9,8 @@ Make sure that the controller is updated to the latest firmware version.
 Currently only works with this setting disabled:\
 Windows 10 Settings - Gaming - Xbox Game Bar - Open Xbox Game Bar using this button on a controller: (X)
 
+Supports up to 4 controllers.
+
 Configure the program using the config.ini file.
 
 ## Requirements
