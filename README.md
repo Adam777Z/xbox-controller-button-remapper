@@ -21,6 +21,11 @@ Configure the program using the config.ini file.
 ## Download
 Download the latest version on the [Releases](https://github.com/Adam777Z/xbox-controller-button-remapper/releases/latest) page.
 
+## Run automatically at startup
+Follow these instructions:
+1. [Pin and unpin apps to the Start menu](https://support.microsoft.com/en-us/windows/pin-and-unpin-apps-to-the-start-menu-10c95188-5f75-bb6c-3fab-cfd678ac8476)
+2. [Add an app to run automatically at startup in Windows 10](https://support.microsoft.com/en-us/windows/add-an-app-to-run-automatically-at-startup-in-windows-10-150da165-dcd9-7230-517b-cf3c295d89dd)
+
 ## Support and Feedback
 Available under [Discussions](https://github.com/Adam777Z/xbox-controller-button-remapper/discussions).
 
