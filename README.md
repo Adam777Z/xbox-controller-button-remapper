@@ -4,7 +4,7 @@ A small program that runs in the background and sends the configured key(s) when
 
 Works with the Xbox Series X|S Controller that has the Share button.
 
-Make sure that the controller is updated to the latest firmware version.
+Make sure that the controller is updated to the latest firmware version. (Instructions: [Update your Xbox Wireless Controller](https://support.xbox.com/en-US/help/hardware-network/controller/update-xbox-wireless-controller))
 
 Currently only works with this setting disabled:\
 Settings - Gaming - Xbox Game Bar - Open Xbox Game Bar using this button on a controller: (X)
