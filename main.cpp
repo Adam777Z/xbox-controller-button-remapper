@@ -385,52 +385,52 @@ private:
 			error("Couldn't load config.ini. Using defaults.");
 		}
 
-		settings[0].share.key                = ini.getIntegers("controller1", "share_key", { 1 });
-		settings[0].share.hold_mode          = ini.getInteger("controller1", "share_hold_mode", 1);
-		settings[0].share.longpress_key      = ini.getIntegers("controller1", "share_longpress_key", { 1 });
+		settings[0].share.key                = ini.getIntegers("controller1", "share_key", { 91,56,84 });
+		settings[0].share.hold_mode          = ini.getInteger("controller1", "share_hold_mode", 2);
+		settings[0].share.longpress_key      = ini.getIntegers("controller1", "share_longpress_key", { 91,56,19 });
 		settings[0].share.longpress_duration = ini.getInteger("controller1", "share_longpress_duration", 1000);
 		settings[0].share.delay              = ini.getInteger("controller1", "share_delay", 0);
 		settings[0].share.duration           = ini.getInteger("controller1", "share_duration", 1);
-		settings[0].xbox.key                 = ini.getIntegers("controller1", "xbox_key", { 255 });
+		settings[0].xbox.key                 = ini.getIntegers("controller1", "xbox_key", { 91,34 });
 		settings[0].xbox.hold_mode           = ini.getInteger("controller1", "xbox_hold_mode", 1);
 		settings[0].xbox.longpress_key       = ini.getIntegers("controller1", "xbox_longpress_key", { 1 });
 		settings[0].xbox.longpress_duration  = ini.getInteger("controller1", "xbox_longpress_duration", 1000);
 		settings[0].xbox.delay               = ini.getInteger("controller1", "xbox_delay", 0);
 		settings[0].xbox.duration            = ini.getInteger("controller1", "xbox_duration", 1);
 
-		settings[1].share.key                = ini.getIntegers("controller2", "share_key", { 1 });
-		settings[1].share.hold_mode          = ini.getInteger("controller2", "share_hold_mode", 1);
-		settings[1].share.longpress_key      = ini.getIntegers("controller2", "share_longpress_key", { 1 });
+		settings[1].share.key                = ini.getIntegers("controller2", "share_key", { 91,56,84 });
+		settings[1].share.hold_mode          = ini.getInteger("controller2", "share_hold_mode", 2);
+		settings[1].share.longpress_key      = ini.getIntegers("controller2", "share_longpress_key", { 91,56,19 });
 		settings[1].share.longpress_duration = ini.getInteger("controller2", "share_longpress_duration", 1000);
 		settings[1].share.delay              = ini.getInteger("controller2", "share_delay", 0);
 		settings[1].share.duration           = ini.getInteger("controller2", "share_duration", 1);
-		settings[1].xbox.key                 = ini.getIntegers("controller2", "xbox_key", { 255 });
+		settings[1].xbox.key                 = ini.getIntegers("controller2", "xbox_key", { 91,34 });
 		settings[1].xbox.hold_mode           = ini.getInteger("controller2", "xbox_hold_mode", 1);
 		settings[1].xbox.longpress_key       = ini.getIntegers("controller2", "xbox_longpress_key", { 1 });
 		settings[1].xbox.longpress_duration  = ini.getInteger("controller2", "xbox_longpress_duration", 1000);
 		settings[1].xbox.delay               = ini.getInteger("controller2", "xbox_delay", 0);
 		settings[1].xbox.duration            = ini.getInteger("controller2", "xbox_duration", 1);
 
-		settings[2].share.key                = ini.getIntegers("controller3", "share_key", { 1 });
-		settings[2].share.hold_mode          = ini.getInteger("controller3", "share_hold_mode", 1);
-		settings[2].share.longpress_key      = ini.getIntegers("controller3", "share_longpress_key", { 1 });
+		settings[2].share.key                = ini.getIntegers("controller3", "share_key", { 91,56,84 });
+		settings[2].share.hold_mode          = ini.getInteger("controller3", "share_hold_mode", 2);
+		settings[2].share.longpress_key      = ini.getIntegers("controller3", "share_longpress_key", { 91,56,19 });
 		settings[2].share.longpress_duration = ini.getInteger("controller3", "share_longpress_duration", 1000);
 		settings[2].share.delay              = ini.getInteger("controller3", "share_delay", 0);
 		settings[2].share.duration           = ini.getInteger("controller3", "share_duration", 1);
-		settings[2].xbox.key                 = ini.getIntegers("controller3", "xbox_key", { 255 });
+		settings[2].xbox.key                 = ini.getIntegers("controller3", "xbox_key", { 91,34 });
 		settings[2].xbox.hold_mode           = ini.getInteger("controller3", "xbox_hold_mode", 1);
 		settings[2].xbox.longpress_key       = ini.getIntegers("controller3", "xbox_longpress_key", { 1 });
 		settings[2].xbox.longpress_duration  = ini.getInteger("controller3", "xbox_longpress_duration", 1000);
 		settings[2].xbox.delay               = ini.getInteger("controller3", "xbox_delay", 0);
 		settings[2].xbox.duration            = ini.getInteger("controller3", "xbox_duration", 1);
 
-		settings[3].share.key                = ini.getIntegers("controller4", "share_key", { 1 });
-		settings[3].share.hold_mode          = ini.getInteger("controller4", "share_hold_mode", 1);
-		settings[3].share.longpress_key      = ini.getIntegers("controller4", "share_longpress_key", { 1 });
+		settings[3].share.key                = ini.getIntegers("controller4", "share_key", { 91,56,84 });
+		settings[3].share.hold_mode          = ini.getInteger("controller4", "share_hold_mode", 2);
+		settings[3].share.longpress_key      = ini.getIntegers("controller4", "share_longpress_key", { 91,56,19 });
 		settings[3].share.longpress_duration = ini.getInteger("controller4", "share_longpress_duration", 1000);
 		settings[3].share.delay              = ini.getInteger("controller4", "share_delay", 0);
 		settings[3].share.duration           = ini.getInteger("controller4", "share_duration", 1);
-		settings[3].xbox.key                 = ini.getIntegers("controller4", "xbox_key", { 255 });
+		settings[3].xbox.key                 = ini.getIntegers("controller4", "xbox_key", { 91,34 });
 		settings[3].xbox.hold_mode           = ini.getInteger("controller4", "xbox_hold_mode", 1);
 		settings[3].xbox.longpress_key       = ini.getIntegers("controller4", "xbox_longpress_key", { 1 });
 		settings[3].xbox.longpress_duration  = ini.getInteger("controller4", "xbox_longpress_duration", 1000);
