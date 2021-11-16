@@ -7,7 +7,7 @@ Works with the Xbox Series X|S Controller that has the Share button.
 Make sure that the controller is updated to the latest firmware version.
 
 Currently only works with this setting disabled:\
-Windows 10 Settings - Gaming - Xbox Game Bar - Open Xbox Game Bar using this button on a controller: (X)
+Settings - Gaming - Xbox Game Bar - Open Xbox Game Bar using this button on a controller: (X)
 
 Supports up to 4 controllers.
 
@@ -15,7 +15,7 @@ Configure the program using the config.ini file.
 
 ## Requirements
 - Xbox Controller
-- Windows 10 64-bit
+- Windows 10/11 64-bit
 - [Microsoft Visual C++ Redistributable for Visual Studio 2019 x64](https://visualstudio.microsoft.com/downloads/#microsoft-visual-c-redistributable-for-visual-studio-2019)
 
 ## Download
@@ -36,6 +36,7 @@ SDL\VisualC\x64\Release
 2. Open the Visual Studio Solution file and build
 
 ## Credits
+- Thanks to Microsoft for the Xbox Controller
 - [button_on_360_guide](https://www.reddit.com/r/emulation/comments/1goval/any_way_to_map_the_middle_xbox_360_button/camujj7/) (GitHub: [1](https://github.com/pinumbernumber/Xbox-360-Guide-Button-Remapper), [2](https://github.com/CautemocSg/xbox-360-guide-remapper))\
 Thanks to the creator of the original program and the source code. I improved it.
 - [SDL](https://github.com/libsdl-org/SDL)
