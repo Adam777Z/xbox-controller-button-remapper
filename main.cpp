@@ -19,6 +19,10 @@
 
 #include "SDL.h"
 
+#include <fcntl.h>
+#include <io.h>
+#include <fstream>
+
 using namespace std;
 
 std::string GetExeFileName()
@@ -38,6 +42,7 @@ std::string GetExePath()
 
 static int num_controllers = 0;
 static SDL_GameController* controllers[MAX_CONTROLLERS];
+bool debug = false;
 
 static void add_controller_mapping(char* guid)
 {
@@ -68,7 +73,11 @@ static void add_controller(int i)
 	SDL_JoystickID controller_id = SDL_JoystickGetDeviceInstanceID(i);
 	if (controller_id < 0)
 	{
-		//SDL_Log("Couldn't get controller ID: %s\n", SDL_GetError());
+		if (debug)
+		{
+			SDL_Log("Couldn't get controller ID: %s\n", SDL_GetError());
+		}
+
 		return;
 	}
 
@@ -84,12 +93,19 @@ static void add_controller(int i)
 
 	add_controller_mapping(guid);
 
-	//SDL_Log("Mapping: %s\n", SDL_GameControllerMappingForGUID(SDL_JoystickGetDeviceGUID(i)));
+	if (debug)
+	{
+		SDL_Log("Mapping: %s\n", SDL_GameControllerMappingForGUID(SDL_JoystickGetDeviceGUID(i)));
+	}
 
 	SDL_GameController* controller = SDL_GameControllerOpen(i);
 	if (!controller)
 	{
-		//SDL_Log("Couldn't open controller: %s\n", SDL_GetError());
+		if (debug)
+		{
+			SDL_Log("Couldn't open controller: %s\n", SDL_GetError());
+		}
+
 		return;
 	}
 
@@ -97,7 +113,10 @@ static void add_controller(int i)
 
 	num_controllers = SDL_NumJoysticks() > MAX_CONTROLLERS ? MAX_CONTROLLERS : SDL_NumJoysticks();
 
-	//SDL_Log("Opened controller: %s\n", SDL_GameControllerName(controller));
+	if (debug)
+	{
+		SDL_Log("Opened controller: %s\n", SDL_GameControllerName(controller));
+	}
 }
 
 static void add_controllers()
@@ -125,7 +144,10 @@ static void close_controller(int i)
 
 	num_controllers = SDL_NumJoysticks() > MAX_CONTROLLERS ? MAX_CONTROLLERS : SDL_NumJoysticks();
 
-	//SDL_Log("Closed controller: %s\n", controller_name);
+	if (debug)
+	{
+		SDL_Log("Closed controller: %s\n", controller_name);
+	}
 }
 
 static void close_controllers()
@@ -257,7 +279,10 @@ void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
 			key_up(code[i]);
 		}
 
-		//SDL_Log("Opened Xbox Game Bar.\n");
+		if (debug)
+		{
+			SDL_Log("Opened Xbox Game Bar.\n");
+		}
 	}
 	else
 	{
@@ -311,7 +336,51 @@ void println(T v)
 {
 	print(v);
 	printf("\n");
+}
 
+// Console I/O in a Win32 GUI App
+// maximum mumber of lines the output console should have
+static const WORD MAX_CONSOLE_LINES = 500;
+
+void RedirectIOToConsole()
+{
+	int hConHandle;
+	long lStdHandle;
+	CONSOLE_SCREEN_BUFFER_INFO coninfo;
+	FILE* fp;
+
+	// allocate a console for this app
+	AllocConsole();
+
+	// set the screen buffer to be big enough to let us scroll text
+	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
+	coninfo.dwSize.Y = MAX_CONSOLE_LINES;
+	SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE), coninfo.dwSize);
+
+	// redirect unbuffered STDOUT to the console
+	lStdHandle = (long)GetStdHandle(STD_OUTPUT_HANDLE);
+	hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
+	fp = _fdopen(hConHandle, "w");
+	*stdout = *fp;
+	setvbuf(stdout, NULL, _IONBF, 0);
+
+	// redirect unbuffered STDIN to the console
+	lStdHandle = (long)GetStdHandle(STD_INPUT_HANDLE);
+	hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
+	fp = _fdopen(hConHandle, "r");
+	*stdin = *fp;
+	setvbuf(stdin, NULL, _IONBF, 0);
+
+	// redirect unbuffered STDERR to the console
+	lStdHandle = (long)GetStdHandle(STD_ERROR_HANDLE);
+	hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
+	fp = _fdopen(hConHandle, "w");
+	*stderr = *fp;
+	setvbuf(stderr, NULL, _IONBF, 0);
+
+	// make cout, wcout, cin, wcin, wcerr, cerr, wclog and clog
+	// point to console as well
+	ios::sync_with_stdio();
 }
 
 struct GlobalData
@@ -355,12 +424,20 @@ struct GlobalData
 			{
 				if (button_pressed_now[j] && !was_button_pressed_prev[i][j])
 				{
-					//SDL_Log("Button pressed.\n");
+					if (debug)
+					{
+						SDL_Log("Button pressed.\n");
+					}
+
 					button_pressed.call(i, j);
 				}
 				else if (!button_pressed_now[j] && was_button_pressed_prev[i][j])
 				{
-					//SDL_Log("Button released.\n");
+					if (debug)
+					{
+						SDL_Log("Button released.\n");
+					}
+
 					button_released.call(i, j);
 				}
 
@@ -383,6 +460,14 @@ private:
 		if (!ini.loadFile(path + "\\config.ini"))
 		{
 			error("Couldn't load config.ini. Using defaults.");
+		}
+
+		debug = ini.getInteger("settings", "debug", 0) == 1;
+
+		if (debug)
+		{
+			RedirectIOToConsole();
+			SDL_Log("Debug mode enabled.\n");
 		}
 
 		settings[0].share.key                = ini.getIntegers("controller1", "share_key", { 91,56,84 });
