@@ -426,7 +426,7 @@ struct GlobalData
 				{
 					if (debug)
 					{
-						SDL_Log("Button pressed.\n");
+						SDL_Log("Button (%s) pressed.\n", (j == 1 ? "Xbox" : "Share"));
 					}
 
 					button_pressed.call(i, j);
@@ -435,7 +435,7 @@ struct GlobalData
 				{
 					if (debug)
 					{
-						SDL_Log("Button released.\n");
+						SDL_Log("Button (%s) released.\n", (j == 1 ? "Xbox" : "Share"));
 					}
 
 					button_released.call(i, j);
