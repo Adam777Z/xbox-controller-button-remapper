@@ -14,7 +14,7 @@ Configure the program using the config.ini file.
 ## Requirements
 - Xbox Controller
 - Windows 10/11 64-bit
-- [Microsoft Visual C++ Redistributable for Visual Studio 2019 x64](https://visualstudio.microsoft.com/downloads/#microsoft-visual-c-redistributable-for-visual-studio-2019)
+- [Microsoft Visual C++ Redistributable for Visual Studio 2022 x64](https://visualstudio.microsoft.com/downloads/#microsoft-visual-c-redistributable-for-visual-studio-2022)
 
 ## Download
 Download the latest version on the [Releases](https://github.com/Adam777Z/xbox-controller-button-remapper/releases/latest) page.
