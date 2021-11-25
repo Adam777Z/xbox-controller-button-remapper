@@ -25,6 +25,43 @@
 
 using namespace std;
 
+struct KeySettings
+{
+	std::vector<int> key = { 0 };
+	int64_t hold_mode = 1;
+	std::vector<int> longpress_key = { 0 };
+	int64_t longpress_duration = 1000;
+	int64_t delay = 0;
+	int64_t duration = 1;
+};
+
+struct ControllerSettings
+{
+	KeySettings share;
+	KeySettings xbox;
+};
+
+struct Controller
+{
+	SDL_GameController* controller;
+	ControllerSettings settings;
+};
+
+static std::vector<Controller> controllers;
+handy::io::INIFile ini;
+bool debug = false;
+
+void error(const std::string&& text)
+{
+	MessageBox(NULL, text.c_str(), "Error", MB_OK);
+}
+
+void fatal_error(const std::string&& text)
+{
+	MessageBox(NULL, text.c_str(), "Fatal Error", MB_OK);
+	exit(1);
+}
+
 std::string GetExeFileName()
 {
 	char buffer[MAX_PATH];
@@ -38,12 +75,6 @@ std::string GetExePath()
 	return f.substr(0, f.find_last_of("\\/"));
 }
 
-#define MAX_CONTROLLERS 4
-
-static int num_controllers = 0;
-static SDL_GameController* controllers[MAX_CONTROLLERS];
-bool debug = false;
-
 static void add_controller_mapping(char* guid)
 {
 	char mapping_string[1024];
@@ -56,11 +87,29 @@ static void add_controller_mapping(char* guid)
 	SDL_GameControllerAddMapping(mapping_string);
 }
 
+static void load_controller_config(int i)
+{
+	std::string controller = "controller" + std::to_string(i + 1);
+
+	controllers[i].settings.share.key = ini.getIntegers(controller, "share_key", { 91,56,84 });
+	controllers[i].settings.share.hold_mode = ini.getInteger(controller, "share_hold_mode", 2);
+	controllers[i].settings.share.longpress_key = ini.getIntegers(controller, "share_longpress_key", { 91,56,19 });
+	controllers[i].settings.share.longpress_duration = ini.getInteger(controller, "share_longpress_duration", 1000);
+	controllers[i].settings.share.delay = ini.getInteger(controller, "share_delay", 0);
+	controllers[i].settings.share.duration = ini.getInteger(controller, "share_duration", 1);
+	controllers[i].settings.xbox.key = ini.getIntegers(controller, "xbox_key", { 91,34 });
+	controllers[i].settings.xbox.hold_mode = ini.getInteger(controller, "xbox_hold_mode", 1);
+	controllers[i].settings.xbox.longpress_key = ini.getIntegers(controller, "xbox_longpress_key", { 1 });
+	controllers[i].settings.xbox.longpress_duration = ini.getInteger(controller, "xbox_longpress_duration", 1000);
+	controllers[i].settings.xbox.delay = ini.getInteger(controller, "xbox_delay", 0);
+	controllers[i].settings.xbox.duration = ini.getInteger(controller, "xbox_duration", 1);
+}
+
 static int find_controller(SDL_JoystickID controller_id)
 {
-	for (int i = 0; i < num_controllers; ++i)
+	for (int i = 0; i < controllers.size(); ++i)
 	{
-		if (controller_id == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controllers[i])))
+		if (controller_id == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controllers[i].controller)))
 		{
 			return i;
 		}
@@ -109,76 +158,52 @@ static void add_controller(int i)
 		return;
 	}
 
-	controllers[i] = controller;
+	controllers.resize(i + 1);
+	controllers[i].controller = controller;
 
-	num_controllers = SDL_NumJoysticks() > MAX_CONTROLLERS ? MAX_CONTROLLERS : SDL_NumJoysticks();
+	load_controller_config(i);
 
 	if (debug)
 	{
-		SDL_Log("Opened controller: %s\n", SDL_GameControllerName(controller));
+		SDL_Log("Opened controller %d: %s\n", (i + 1), SDL_GameControllerName(controller));
 	}
 }
 
-static void add_controllers()
+static void close_controller(SDL_JoystickID controller_id)
 {
-	num_controllers = SDL_NumJoysticks() > MAX_CONTROLLERS ? MAX_CONTROLLERS : SDL_NumJoysticks();
+	int i = find_controller(controller_id);
 
-	for (int i = 0; i < num_controllers; ++i)
+	if (i < 0)
 	{
-		add_controller(i);
-	}
-}
-
-static void close_controller(int i)
-{
-	if (controllers[i] == NULL)
-	{
+		// Can't find this controller
 		return;
 	}
 
-	const char* controller_name = SDL_GameControllerName(controllers[i]);
+	const char* controller_name = SDL_GameControllerName(controllers[i].controller);
 
-	SDL_GameControllerClose(controllers[i]);
+	SDL_GameControllerClose(controllers[i].controller);
 
-	controllers[i] = NULL;
-
-	num_controllers = SDL_NumJoysticks() > MAX_CONTROLLERS ? MAX_CONTROLLERS : SDL_NumJoysticks();
+	controllers.erase(controllers.begin() + i);
 
 	if (debug)
 	{
-		SDL_Log("Closed controller: %s\n", controller_name);
+		SDL_Log("Closed controller %d: %s\n", (i + 1), controller_name);
 	}
 }
 
 static void close_controllers()
 {
-	for (int i = 0; i < MAX_CONTROLLERS; ++i)
+	for (int i = 0; i < controllers.size(); ++i)
 	{
-		close_controller(i);
+		SDL_GameControllerClose(controllers[i].controller);
 	}
-}
 
-static void update_controllers()
-{
-	int num_controllers_now = SDL_NumJoysticks() > MAX_CONTROLLERS ? MAX_CONTROLLERS : SDL_NumJoysticks();
+	controllers.clear();
 
-	if (num_controllers_now != num_controllers)
+	if (debug)
 	{
-		close_controllers();
-		add_controllers();
+		SDL_Log("Closed controllers.\n");
 	}
-}
-
-
-void error(const std::string&& text)
-{
-	MessageBox(NULL, text.c_str(), "Error", MB_OK);
-}
-
-void fatal_error(const std::string&& text)
-{
-	MessageBox(NULL, text.c_str(), "Fatal Error", MB_OK);
-	exit(1);
 }
 
 bool is_open_xbox_game_bar_keys(std::vector<int> code)
@@ -206,7 +231,7 @@ bool is_open_xbox_game_bar_keys(std::vector<int> code)
 
 void key_down(int code)
 {
-	INPUT inp;
+	INPUT inp{};
 	inp.type = INPUT_KEYBOARD;
 	inp.ki.wScan = code; // hardware scan code for key
 
@@ -229,7 +254,7 @@ void key_down(int code)
 
 void key_up(int code)
 {
-	INPUT inp;
+	INPUT inp{};
 	inp.type = INPUT_KEYBOARD;
 	inp.ki.wScan = code; // hardware scan code for key
 
@@ -292,24 +317,6 @@ void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
 		}
 	}
 }
-
-
-
-struct KeySettings
-{
-	std::vector<int> key = { 1 };
-	int64_t hold_mode = 1;
-	std::vector<int> longpress_key = { 1 };
-	int64_t longpress_duration = 1000;
-	int64_t delay = 0;
-	int64_t duration = 1;
-};
-
-struct ControllerSettings
-{
-	KeySettings share;
-	KeySettings xbox;
-};
 
 void print(int8_t v)
 {
@@ -385,7 +392,6 @@ void RedirectIOToConsole()
 
 struct GlobalData
 {
-	ControllerSettings settings[4];
 	handy::arch::Signal<void(int controller, int button)> button_pressed;
 	handy::arch::Signal<void(int controller, int button)> button_released;
 
@@ -398,23 +404,60 @@ struct GlobalData
 
 	bool inline is_xbox_button_pressed(int i)
 	{
-		return SDL_GameControllerGetButton(controllers[i], SDL_CONTROLLER_BUTTON_GUIDE) == SDL_PRESSED;
+		return SDL_GameControllerGetButton(controllers[i].controller, SDL_CONTROLLER_BUTTON_GUIDE) == SDL_PRESSED;
 	}
 
 	bool inline is_share_button_pressed(int i)
 	{
-		return SDL_GameControllerGetButton(controllers[i], SDL_CONTROLLER_BUTTON_MISC1) == SDL_PRESSED;
+		return SDL_GameControllerGetButton(controllers[i].controller, SDL_CONTROLLER_BUTTON_MISC1) == SDL_PRESSED;
 	}
 
 	void update()
 	{
-		SDL_JoystickUpdate();
+		//SDL_JoystickUpdate();
+		//update_controllers();
 
-		update_controllers();
+		SDL_Event event;
+
+		while (SDL_PollEvent(&event))
+		{
+			switch (event.type) 
+			{
+				case SDL_CONTROLLERDEVICEADDED:
+					if (debug)
+					{
+						//SDL_Log("Controller %d added.\n", (int)SDL_JoystickGetDeviceInstanceID(event.cdevice.which));
+						SDL_Log("Controller %d added.\n", (int)event.cdevice.which + 1);
+					}
+
+					add_controller(event.cdevice.which);
+
+					break;
+
+				case SDL_CONTROLLERDEVICEREMOVED:
+					if (debug)
+					{
+						//SDL_Log("Controller %d removed.\n", (int)event.cdevice.which);
+						SDL_Log("Controller %d removed.\n", (int)find_controller(event.cdevice.which) + 1);
+					}
+
+					close_controller(event.cdevice.which);
+
+					break;
+
+				default:
+					if (debug)
+					{
+						SDL_Log("Event: %d\n", event.type);
+					}
+
+					break;
+			}
+		}
 
 		GlobalData& d = GlobalData::get();
 
-		for (int i = 0; i < num_controllers; ++i)
+		for (int i = 0; i < controllers.size(); ++i)
 		{
 			bool button_pressed_now[2] = { is_share_button_pressed(i), is_xbox_button_pressed(i) };
 
@@ -452,7 +495,6 @@ private:
 	GlobalData()
 	{
 		std::string path = GetExePath();
-		handy::io::INIFile ini;
 
 		if (!ini.loadFile(path + "\\config.ini"))
 		{
@@ -465,24 +507,6 @@ private:
 		{
 			RedirectIOToConsole();
 			SDL_Log("Debug mode enabled.\n");
-		}
-
-		for (int i = 0; i < MAX_CONTROLLERS; ++i)
-		{
-			std::string controller = "controller" + std::to_string(i + 1);
-
-			settings[i].share.key                = ini.getIntegers(controller, "share_key", { 91,56,84 });
-			settings[i].share.hold_mode          = ini.getInteger(controller,  "share_hold_mode", 2);
-			settings[i].share.longpress_key      = ini.getIntegers(controller, "share_longpress_key", { 91,56,19 });
-			settings[i].share.longpress_duration = ini.getInteger(controller,  "share_longpress_duration", 1000);
-			settings[i].share.delay              = ini.getInteger(controller,  "share_delay", 0);
-			settings[i].share.duration           = ini.getInteger(controller,  "share_duration", 1);
-			settings[i].xbox.key                 = ini.getIntegers(controller, "xbox_key", { 91,34 });
-			settings[i].xbox.hold_mode           = ini.getInteger(controller,  "xbox_hold_mode", 1);
-			settings[i].xbox.longpress_key       = ini.getIntegers(controller, "xbox_longpress_key", { 1 });
-			settings[i].xbox.longpress_duration  = ini.getInteger(controller,  "xbox_longpress_duration", 1000);
-			settings[i].xbox.delay               = ini.getInteger(controller,  "xbox_delay", 0);
-			settings[i].xbox.duration            = ini.getInteger(controller,  "xbox_duration", 1);
 		}
 	}
 };
@@ -549,7 +573,7 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 
 	d.button_pressed.connect([&](int i, int j)
 		{
-			KeySettings settings = j == 1 ? d.settings[i].xbox : d.settings[i].share;
+			KeySettings settings = j == 1 ? controllers[i].settings.xbox : controllers[i].settings.share;
 
 			if (settings.hold_mode == 1)
 			{
@@ -574,7 +598,7 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 
 	d.button_released.connect([&](int i, int j)
 		{
-			KeySettings settings = j == 1 ? d.settings[i].xbox : d.settings[i].share;
+			KeySettings settings = j == 1 ? controllers[i].settings.xbox : controllers[i].settings.share;
 
 			if (settings.hold_mode == 1)
 			{
@@ -625,7 +649,7 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 
 	//SDL_GameControllerAddMappingsFromFile("gamecontrollermapping.txt");
 
-	add_controllers();
+	//add_controllers();
 
 	/*for (;;)
 	{
