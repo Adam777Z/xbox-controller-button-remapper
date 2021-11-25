@@ -61,8 +61,8 @@ IDI_ICON1               ICON                    "XboxOneLogo.ico"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,1,0,0
- PRODUCTVERSION 1,1,0,0
+ FILEVERSION 1,2,0,0
+ PRODUCTVERSION 1,2,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -78,10 +78,10 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "Xbox Controller button remapper"
-            VALUE "FileVersion", "1.1.0.0"
-            VALUE "LegalCopyright", "Copyright (C) 2015-2021"
+            VALUE "FileVersion", "1.2.0.0"
+            VALUE "LegalCopyright", "Copyright (C) 2015-2021 Adam777 & others"
             VALUE "ProductName", "Xbox Controller button remapper"
-            VALUE "ProductVersion", "1.1.0.0"
+            VALUE "ProductVersion", "1.2.0.0"
         END
     END
     BLOCK "VarFileInfo"
