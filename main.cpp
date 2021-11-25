@@ -359,6 +359,8 @@ void RedirectIOToConsole()
 	// allocate a console for this app
 	AllocConsole();
 
+	SetConsoleTitle("Xbox Controller button remapper");
+
 	// set the screen buffer to be big enough to let us scroll text
 	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
 	coninfo.dwSize.Y = MAX_CONSOLE_LINES;
@@ -415,7 +417,6 @@ struct GlobalData
 	void update()
 	{
 		//SDL_JoystickUpdate();
-		//update_controllers();
 
 		SDL_Event event;
 
@@ -648,8 +649,6 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 	}
 
 	//SDL_GameControllerAddMappingsFromFile("gamecontrollermapping.txt");
-
-	//add_controllers();
 
 	/*for (;;)
 	{
