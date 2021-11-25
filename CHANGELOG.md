@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.0.0] - 2021-11-25
+- New: Debug mode
+- Fixes and improvements
+
 ## [1.1.0.0] - 2021-08-19
 - Fixes and improvements
 
@@ -35,6 +39,7 @@
 ## [1.0.0.0] - 2021-07-22
 - First release
 
+[1.2.0.0]: https://github.com/Adam777Z/xbox-controller-button-remapper/releases/tag/1.2.0.0
 [1.1.0.0]: https://github.com/Adam777Z/xbox-controller-button-remapper/releases/tag/1.1.0.0
 [1.0.9.0]: https://github.com/Adam777Z/xbox-controller-button-remapper/releases/tag/1.0.9.0
 [1.0.8.0]: https://github.com/Adam777Z/xbox-controller-button-remapper/releases/tag/1.0.8.0
