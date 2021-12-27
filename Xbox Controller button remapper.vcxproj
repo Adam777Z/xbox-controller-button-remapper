@@ -125,12 +125,7 @@ xcopy /y /d "$(ProjectDir)SDL\VisualC\x64\Release\SDL2.dll" "$(OutDir)"</Command
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="INI.hpp" />
-    <ClInclude Include="NoCopy.hpp" />
-    <ClInclude Include="qsb.hpp" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="Signal.hpp" />
-    <ClInclude Include="targetver.h" />
-    <ClInclude Include="VariadicTools.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />

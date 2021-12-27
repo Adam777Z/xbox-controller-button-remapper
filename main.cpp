@@ -1,29 +1,21 @@
 #include <string>
-
 #include <chrono>
 #include <thread>
-
-#include "INI.hpp"
-
-#include "targetver.h"
-#include <windows.h>
-#include "Signal.hpp"
-
-#include <shellapi.h>
-#include "resource.h"
-
-#include "qsb.hpp"
-#include <stdio.h>
-
 #include <iostream>
-
-#include "SDL.h"
-
-#include <fcntl.h>
-#include <io.h>
 #include <fstream>
 
+#include "INI.hpp"
+#include "SDL.h"
+#include <windows.h>
+#include <shellapi.h>
+#include "resource.h"
+#include <stdio.h>
+#include <fcntl.h>
+#include <io.h>
+
 using namespace std;
+
+typedef std::chrono::high_resolution_clock hrc;
 
 struct KeySettings
 {
@@ -45,9 +37,18 @@ struct Controller
 {
 	SDL_GameController* controller;
 	ControllerSettings settings;
+	//bool was_button_pressed_prev[2] = { false };
+	hrc::time_point button_depressed = hrc::now();
 };
 
+//struct ButtonPressed
+//{
+//	bool share_button_pressed = false;
+//	bool xbox_button_pressed = false;
+//};
+
 static std::vector<Controller> controllers;
+//static std::vector<ButtonPressed> was_button_pressed_prev;
 handy::io::INIFile ini;
 bool debug = false;
 
@@ -289,7 +290,7 @@ void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
 			key_down(code[i]);
 		}
 	}
-	
+
 	std::this_thread::sleep_for(std::chrono::milliseconds(duration));
 
 	if (open_xbox_game_bar_keys)
@@ -306,7 +307,7 @@ void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
 
 		if (debug)
 		{
-			SDL_Log("Opened Xbox Game Bar.\n");
+			SDL_Log("Xbox Game Bar opened/closed.\n");
 		}
 	}
 	else
@@ -318,32 +319,15 @@ void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
 	}
 }
 
-void print(int8_t v)
-{
-	printf("%i", (int)v);
-}
+//bool inline is_xbox_button_pressed(int i)
+//{
+//	return SDL_GameControllerGetButton(controllers[i].controller, SDL_CONTROLLER_BUTTON_GUIDE) == SDL_PRESSED;
+//}
 
-void print(uint8_t v)
-{
-	printf("%u", (unsigned int)v);
-}
-
-void print(int16_t v)
-{
-	printf("%i", (int)v);
-}
-
-void print(uint16_t v)
-{
-	printf("%u", (unsigned int)v);
-}
-
-template <typename T>
-void println(T v)
-{
-	print(v);
-	printf("\n");
-}
+//bool inline is_share_button_pressed(int i)
+//{
+//	return SDL_GameControllerGetButton(controllers[i].controller, SDL_CONTROLLER_BUTTON_MISC1) == SDL_PRESSED;
+//}
 
 // Console I/O in a Win32 GUI App
 // maximum mumber of lines the output console should have
@@ -392,127 +376,143 @@ void RedirectIOToConsole()
 	ios::sync_with_stdio();
 }
 
-struct GlobalData
+void loop()
 {
-	handy::arch::Signal<void(int controller, int button)> button_pressed;
-	handy::arch::Signal<void(int controller, int button)> button_released;
+	SDL_Event event;
+	int i;
+	KeySettings settings;
 
-	// Singleton
-	static inline GlobalData& get()
+	while (SDL_PollEvent(&event))
 	{
-		static GlobalData dat;
-		return dat;
-	}
-
-	bool inline is_xbox_button_pressed(int i)
-	{
-		return SDL_GameControllerGetButton(controllers[i].controller, SDL_CONTROLLER_BUTTON_GUIDE) == SDL_PRESSED;
-	}
-
-	bool inline is_share_button_pressed(int i)
-	{
-		return SDL_GameControllerGetButton(controllers[i].controller, SDL_CONTROLLER_BUTTON_MISC1) == SDL_PRESSED;
-	}
-
-	void update()
-	{
-		//SDL_JoystickUpdate();
-
-		SDL_Event event;
-
-		while (SDL_PollEvent(&event))
+		switch (event.type)
 		{
-			switch (event.type) 
-			{
-				case SDL_CONTROLLERDEVICEADDED:
-					if (debug)
-					{
-						//SDL_Log("Controller %d added.\n", (int)SDL_JoystickGetDeviceInstanceID(event.cdevice.which));
-						SDL_Log("Controller %d added.\n", (int)event.cdevice.which + 1);
-					}
+			case SDL_CONTROLLERDEVICEADDED:
+				if (debug)
+				{
+					//SDL_Log("Controller %d added.\n", (int)SDL_JoystickGetDeviceInstanceID(event.cdevice.which));
+					SDL_Log("Controller %d added.\n", (int)event.cdevice.which + 1);
+				}
 
-					add_controller(event.cdevice.which);
+				add_controller(event.cdevice.which);
 
-					break;
+				break;
 
-				case SDL_CONTROLLERDEVICEREMOVED:
-					if (debug)
-					{
-						//SDL_Log("Controller %d removed.\n", (int)event.cdevice.which);
-						SDL_Log("Controller %d removed.\n", (int)find_controller(event.cdevice.which) + 1);
-					}
+			case SDL_CONTROLLERDEVICEREMOVED:
+				if (debug)
+				{
+					//SDL_Log("Controller %d removed.\n", (int)event.cdevice.which);
+					SDL_Log("Controller %d removed.\n", (int)find_controller(event.cdevice.which) + 1);
+				}
 
-					close_controller(event.cdevice.which);
+				close_controller(event.cdevice.which);
 
-					break;
+				break;
 
-				default:
-					if (debug)
-					{
-						SDL_Log("Event: %d\n", event.type);
-					}
+			case SDL_CONTROLLERBUTTONDOWN:
+				if (debug)
+				{
+					SDL_Log("Controller %d button %s %s.\n", (int)event.cbutton.which + 1, SDL_GameControllerGetStringForButton((SDL_GameControllerButton)event.cbutton.button), event.cbutton.state ? "pressed" : "released");
+				}
 
-					break;
-			}
-		}
-
-		GlobalData& d = GlobalData::get();
-
-		for (int i = 0; i < controllers.size(); ++i)
-		{
-			bool button_pressed_now[2] = { is_share_button_pressed(i), is_xbox_button_pressed(i) };
-
-			for (int j = 0; j < 2; ++j)
-			{
-				if (button_pressed_now[j] && !was_button_pressed_prev[i][j])
+				if (event.cbutton.button == SDL_CONTROLLER_BUTTON_MISC1 || event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE)
 				{
 					if (debug)
 					{
-						SDL_Log("%s button pressed.\n", (j == 1 ? "Xbox" : "Share"));
+						SDL_Log("%s button pressed.\n", (event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE ? "Xbox" : "Share"));
 					}
 
-					button_pressed.call(i, j);
+					i = find_controller(event.cbutton.which);
+					settings = event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE ? controllers[i].settings.xbox : controllers[i].settings.share;
+
+					if (settings.hold_mode == 1)
+					{
+						if (settings.key.size() != 0)
+						{
+							// Open Xbox Game Bar on button release only
+							if (!is_open_xbox_game_bar_keys(settings.key))
+							{
+								for (std::size_t k = 0; k < settings.key.size(); ++k)
+								{
+									key_down(settings.key[k]);
+								}
+							}
+						}
+					}
+					else if (settings.hold_mode == 2)
+					{
+						controllers[i].button_depressed = hrc::now();
+					}
 				}
-				else if (!button_pressed_now[j] && was_button_pressed_prev[i][j])
+
+				break;
+
+			case SDL_CONTROLLERBUTTONUP:
+				if (debug)
+				{
+					SDL_Log("Controller %d button %s %s.\n", (int)event.cbutton.which + 1, SDL_GameControllerGetStringForButton((SDL_GameControllerButton)event.cbutton.button), event.cbutton.state ? "pressed" : "released");
+				}
+
+				if (event.cbutton.button == SDL_CONTROLLER_BUTTON_MISC1 || event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE)
 				{
 					if (debug)
 					{
-						SDL_Log("%s button released.\n", (j == 1 ? "Xbox" : "Share"));
+						SDL_Log("%s button released.\n", (event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE ? "Xbox" : "Share"));
 					}
 
-					button_released.call(i, j);
+					i = find_controller(event.cbutton.which);
+					settings = event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE ? controllers[i].settings.xbox : controllers[i].settings.share;
+
+					if (settings.hold_mode == 1)
+					{
+						if (settings.key.size() != 0)
+						{
+							// Open Xbox Game Bar on button release only
+							if (is_open_xbox_game_bar_keys(settings.key))
+							{
+								key_tap(settings.key, 0, 1);
+							}
+							else
+							{
+								for (std::size_t k = 0; k < settings.key.size(); ++k)
+								{
+									key_up(settings.key[k]);
+								}
+							}
+						}
+					}
+					else if (settings.hold_mode == 2)
+					{
+						int64_t ms = (std::chrono::duration_cast<std::chrono::milliseconds>(hrc::now() - controllers[i].button_depressed)).count();
+
+						if (ms >= settings.longpress_duration)
+						{
+							if (settings.longpress_key.size() != 0)
+							{
+								key_tap(settings.longpress_key, settings.delay, settings.duration);
+							}
+						}
+						else
+						{
+							if (settings.key.size() != 0)
+							{
+								key_tap(settings.key, settings.delay, settings.duration);
+							}
+						}
+					}
 				}
 
-				was_button_pressed_prev[i][j] = button_pressed_now[j];
-			}
+				break;
+
+			default:
+				if (debug)
+				{
+					SDL_Log("Event: %d\n", event.type);
+				}
+
+				break;
 		}
 	}
-
-private:
-
-	bool was_xbox_button_pressed_prev[4] = { false };
-	bool was_button_pressed_prev[4][2] = { false };
-
-	GlobalData()
-	{
-		std::string path = GetExePath();
-
-		if (!ini.loadFile(path + "\\config.ini"))
-		{
-			error("Couldn't load config.ini. Using defaults.");
-		}
-
-		debug = ini.getInteger("settings", "debug", 0) == 1;
-
-		if (debug)
-		{
-			RedirectIOToConsole();
-			SDL_Log("Debug mode enabled.\n");
-		}
-	}
-};
-
-
+}
 
 #define WM_SYSICON (WM_USER + 1)
 
@@ -564,81 +564,20 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 
 	// Main
 
-	GlobalData& d = GlobalData::get();
+	std::string path = GetExePath();
 
-	typedef std::chrono::high_resolution_clock hrc;
+	if (!ini.loadFile(path + "\\config.ini"))
+	{
+		error("Couldn't load config.ini. Using defaults.");
+	}
 
-	auto now = hrc::now();
-	hrc::time_point button_depressed[4] = { now, now, now, now };
+	debug = ini.getInteger("settings", "debug", 0) == 1;
 
-
-	d.button_pressed.connect([&](int i, int j)
-		{
-			KeySettings settings = j == 1 ? controllers[i].settings.xbox : controllers[i].settings.share;
-
-			if (settings.hold_mode == 1)
-			{
-				if (settings.key.size() != 0)
-				{
-					// Open Xbox Game Bar on button release only
-					if (!is_open_xbox_game_bar_keys(settings.key))
-					{
-						for (std::size_t k = 0; k < settings.key.size(); ++k)
-						{
-							key_down(settings.key[k]);
-						}
-					}
-				}
-			}
-			else if (settings.hold_mode == 2)
-			{
-				button_depressed[i] = hrc::now();
-			}
-		}
-	);
-
-	d.button_released.connect([&](int i, int j)
-		{
-			KeySettings settings = j == 1 ? controllers[i].settings.xbox : controllers[i].settings.share;
-
-			if (settings.hold_mode == 1)
-			{
-				if (settings.key.size() != 0)
-				{
-					if (is_open_xbox_game_bar_keys(settings.key))
-					{
-						key_tap(settings.key, 0, 1);
-					}
-					else
-					{
-						for (std::size_t k = 0; k < settings.key.size(); ++k)
-						{
-							key_up(settings.key[k]);
-						}
-					}
-				}
-			}
-			else if (settings.hold_mode == 2)
-			{
-				int64_t ms = (std::chrono::duration_cast<std::chrono::milliseconds>(hrc::now() - button_depressed[i])).count();
-
-				if (ms >= settings.longpress_duration)
-				{
-					if (settings.longpress_key.size() != 0)
-					{
-						key_tap(settings.longpress_key, settings.delay, settings.duration);
-					}
-				}
-				else
-				{
-					if (settings.key.size() != 0)
-					{
-						key_tap(settings.key, settings.delay, settings.duration);
-					}
-				}
-			}
-		}
-	);
+	if (debug)
+	{
+		RedirectIOToConsole();
+		SDL_Log("Debug mode enabled.\n");
+	}
 
 	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
 
@@ -649,12 +588,6 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 	}
 
 	//SDL_GameControllerAddMappingsFromFile("gamecontrollermapping.txt");
-
-	/*for (;;)
-	{
-		d.update();
-		Sleep(50);
-	}*/
 
 	while (true)
 	{
@@ -673,7 +606,7 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 		}
 
 		// Do a tick of any intensive stuff here such as graphics processing
-		d.update();
+		loop();
 
 		Sleep(50);
 	}
