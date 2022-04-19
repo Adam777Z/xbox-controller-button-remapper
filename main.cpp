@@ -552,13 +552,6 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	// This is the handle for our window
 	hCurrentInstance = hInstance;
 
-	//WNDCLASS wincl;
-	//ZeroMemory(&wincl, sizeof(wincl));
-	//wincl.hInstance = hInstance;
-	//wincl.lpszClassName = szProgramName;
-	//wincl.lpfnWndProc = WindowProc;
-	//ATOM szWindowClass = RegisterClassEx(&wincl);
-
 	WNDCLASSEX wcex = { sizeof(wcex) };
 	//wcex.style = CS_HREDRAW | CS_VREDRAW;
 	wcex.lpfnWndProc = WindowProc;
@@ -638,19 +631,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		case WM_CREATE:
 		{
-			//memset(&notifyIconData, 0, sizeof(NOTIFYICONDATA));
-			//ZeroMemory(&notifyIconData, sizeof(notifyIconData));
-			//notifyIconData.cbSize = sizeof(notifyIconData);
-			//notifyIconData.hWnd = hwnd;
-			//notifyIconData.uID = ID_TRAY_APP_ICON;
-			//notifyIconData.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
-			//notifyIconData.uCallbackMessage = WM_NOTIFYICON;
-			//notifyIconData.hIcon = (HICON)LoadImage(hCurrentInstance, MAKEINTRESOURCE(IDI_ICON), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR);
-			//strncpy(notifyIconData.szTip, szProgramName, sizeof(szProgramName));
-			//LoadString(hCurrentInstance, szProgramName, notifyIconData.szTip, ARRAYSIZE(notifyIconData.szTip));
-			//Shell_NotifyIcon(NIM_ADD, &notifyIconData);
-
-
 			NOTIFYICONDATA notifyIconData = { sizeof(notifyIconData) };
 			notifyIconData.hWnd = hwnd;
 			// Add the icon, setting the icon, tooltip, and callback message
@@ -667,7 +647,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			// NOTIFYICON_VERSION_4 is prefered
 			notifyIconData.uVersion = NOTIFYICON_VERSION_4;
-			//return Shell_NotifyIcon(NIM_SETVERSION, &notifyIconData);
 			Shell_NotifyIcon(NIM_SETVERSION, &notifyIconData);
 
 			hMenu = CreatePopupMenu();
