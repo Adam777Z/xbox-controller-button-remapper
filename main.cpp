@@ -23,12 +23,6 @@ using namespace std;
 typedef std::chrono::high_resolution_clock hrc;
 
 const wchar_t szProgramName[] = L"Xbox Controller button remapper";
-// Use a GUID to uniquely identify the icon
-#if defined _DEBUG
-class __declspec(uuid("a99efef7-9e7c-4eae-a60b-b96f946f7783")) ProgramIcon;
-#else
-class __declspec(uuid("a0bdcbc6-0392-4c6c-9ff7-9683dcdf1758")) ProgramIcon;
-#endif
 
 struct KeySettings
 {
@@ -638,9 +632,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			NOTIFYICONDATA notifyIconData = { sizeof(notifyIconData) };
 			notifyIconData.hWnd = hwnd;
 			// Add the icon, setting the icon, tooltip, and callback message
-			// The icon will be identified with the GUID
-			notifyIconData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_GUID;
-			notifyIconData.guidItem = __uuidof(ProgramIcon);
+			// The icon will be identified with the uID
+			notifyIconData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+			notifyIconData.uID = ID_TRAY_APP_ICON;
 			notifyIconData.uCallbackMessage = WM_NOTIFYICON;
 			LoadIconMetric(hCurrentInstance, MAKEINTRESOURCE(IDI_ICON), LIM_SMALL, &notifyIconData.hIcon);
 			//LoadString(hCurrentInstance, szProgramName, notifyIconData.szTip, ARRAYSIZE(notifyIconData.szTip));
