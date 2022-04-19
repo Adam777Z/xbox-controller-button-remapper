@@ -24,7 +24,11 @@ typedef std::chrono::high_resolution_clock hrc;
 
 const wchar_t szProgramName[] = L"Xbox Controller button remapper";
 // Use a GUID to uniquely identify the icon
+#if defined _DEBUG
 class __declspec(uuid("a99efef7-9e7c-4eae-a60b-b96f946f7783")) ProgramIcon;
+#else
+class __declspec(uuid("a0bdcbc6-0392-4c6c-9ff7-9683dcdf1758")) ProgramIcon;
+#endif
 
 struct KeySettings
 {
