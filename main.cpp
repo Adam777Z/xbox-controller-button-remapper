@@ -3,19 +3,28 @@
 #include <thread>
 #include <iostream>
 #include <fstream>
-
-#include "INI.hpp"
-#include "SDL.h"
 #include <windows.h>
 #include <shellapi.h>
-#include "resource.h"
-#include <stdio.h>
+#include <commctrl.h>
+#include <strsafe.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include <io.h>
+#include "INI.hpp"
+#include "SDL.h"
+#include "resource.h"
+
+// we need commctrl v6 for LoadIconMetric()
+#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#pragma comment(lib, "comctl32.lib")
 
 using namespace std;
 
 typedef std::chrono::high_resolution_clock hrc;
+
+const wchar_t szProgramName[] = L"Xbox Controller button remapper";
+// Use a GUID to uniquely identify the icon
+class __declspec(uuid("a99efef7-9e7c-4eae-a60b-b96f946f7783")) ProgramIcon;
 
 struct KeySettings
 {
@@ -35,45 +44,42 @@ struct ControllerSettings
 
 struct Controller
 {
-	SDL_GameController* controller;
+	SDL_GameController* controller{};
 	ControllerSettings settings;
-	//bool was_button_pressed_prev[2] = { false };
 	hrc::time_point button_depressed = hrc::now();
 };
 
-//struct ButtonPressed
-//{
-//	bool share_button_pressed = false;
-//	bool xbox_button_pressed = false;
-//};
-
 static std::vector<Controller> controllers;
-//static std::vector<ButtonPressed> was_button_pressed_prev;
 handy::io::INIFile ini;
 bool debug = false;
 
-void error(const std::string&& text)
+void message(const LPCWSTR&& text)
 {
-	MessageBox(NULL, text.c_str(), "Error", MB_OK);
+	MessageBox(NULL, text, szProgramName, MB_OK);
 }
 
-void fatal_error(const std::string&& text)
+void error(const LPCWSTR&& text)
 {
-	MessageBox(NULL, text.c_str(), "Fatal Error", MB_OK);
+	MessageBox(NULL, text, L"Error", MB_OK);
+}
+
+void fatal_error(const LPCWSTR&& text)
+{
+	MessageBox(NULL, text, L"Fatal Error", MB_OK);
 	exit(1);
 }
 
-std::string GetExeFileName()
+std::wstring GetExeFileName()
 {
-	char buffer[MAX_PATH];
+	wchar_t buffer[MAX_PATH];
 	GetModuleFileName(NULL, buffer, MAX_PATH);
-	return std::string(buffer);
+	return std::wstring(buffer);
 }
 
-std::string GetExePath()
+std::wstring GetExePath()
 {
-	std::string f = GetExeFileName();
-	return f.substr(0, f.find_last_of("\\/"));
+	std::wstring f = GetExeFileName();
+	return f.substr(0, f.find_last_of(L"\\/"));
 }
 
 static void add_controller_mapping(char* guid)
@@ -90,20 +96,20 @@ static void add_controller_mapping(char* guid)
 
 static void load_controller_config(int i)
 {
-	std::string controller = "controller" + std::to_string(i + 1);
+	std::wstring controller = L"controller" + std::to_wstring(i + 1);
 
-	controllers[i].settings.share.key = ini.getIntegers(controller, "share_key", { 91,56,84 });
-	controllers[i].settings.share.hold_mode = ini.getInteger(controller, "share_hold_mode", 2);
-	controllers[i].settings.share.longpress_key = ini.getIntegers(controller, "share_longpress_key", { 91,56,19 });
-	controllers[i].settings.share.longpress_duration = ini.getInteger(controller, "share_longpress_duration", 1000);
-	controllers[i].settings.share.delay = ini.getInteger(controller, "share_delay", 0);
-	controllers[i].settings.share.duration = ini.getInteger(controller, "share_duration", 1);
-	controllers[i].settings.xbox.key = ini.getIntegers(controller, "xbox_key", { 91,34 });
-	controllers[i].settings.xbox.hold_mode = ini.getInteger(controller, "xbox_hold_mode", 1);
-	controllers[i].settings.xbox.longpress_key = ini.getIntegers(controller, "xbox_longpress_key", { 1 });
-	controllers[i].settings.xbox.longpress_duration = ini.getInteger(controller, "xbox_longpress_duration", 1000);
-	controllers[i].settings.xbox.delay = ini.getInteger(controller, "xbox_delay", 0);
-	controllers[i].settings.xbox.duration = ini.getInteger(controller, "xbox_duration", 1);
+	controllers[i].settings.share.key = ini.getIntegers(controller, L"share_key", { 91,56,84 });
+	controllers[i].settings.share.hold_mode = ini.getInteger(controller, L"share_hold_mode", 2);
+	controllers[i].settings.share.longpress_key = ini.getIntegers(controller, L"share_longpress_key", { 91,56,19 });
+	controllers[i].settings.share.longpress_duration = ini.getInteger(controller, L"share_longpress_duration", 1000);
+	controllers[i].settings.share.delay = ini.getInteger(controller, L"share_delay", 0);
+	controllers[i].settings.share.duration = ini.getInteger(controller, L"share_duration", 1);
+	controllers[i].settings.xbox.key = ini.getIntegers(controller, L"xbox_key", { 91,34 });
+	controllers[i].settings.xbox.hold_mode = ini.getInteger(controller, L"xbox_hold_mode", 1);
+	controllers[i].settings.xbox.longpress_key = ini.getIntegers(controller, L"xbox_longpress_key", { 1 });
+	controllers[i].settings.xbox.longpress_duration = ini.getInteger(controller, L"xbox_longpress_duration", 1000);
+	controllers[i].settings.xbox.delay = ini.getInteger(controller, L"xbox_delay", 0);
+	controllers[i].settings.xbox.duration = ini.getInteger(controller, L"xbox_duration", 1);
 }
 
 static int find_controller(SDL_JoystickID controller_id)
@@ -159,7 +165,7 @@ static void add_controller(int i)
 		return;
 	}
 
-	controllers.resize(i + 1);
+	controllers.resize((int64_t)(i) + 1);
 	controllers[i].controller = controller;
 
 	load_controller_config(i);
@@ -282,7 +288,7 @@ void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
 
 	bool open_xbox_game_bar_keys = is_open_xbox_game_bar_keys(code);
 
-	// Open Xbox Game Bar on button release only
+	// Open/close Xbox Game Bar on button release only
 	if (!open_xbox_game_bar_keys)
 	{
 		for (std::size_t i = 0; i < code.size(); ++i)
@@ -343,7 +349,7 @@ void RedirectIOToConsole()
 	// allocate a console for this app
 	AllocConsole();
 
-	SetConsoleTitle("Xbox Controller button remapper");
+	SetConsoleTitle(szProgramName);
 
 	// set the screen buffer to be big enough to let us scroll text
 	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
@@ -351,21 +357,21 @@ void RedirectIOToConsole()
 	SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE), coninfo.dwSize);
 
 	// redirect unbuffered STDOUT to the console
-	lStdHandle = (long)GetStdHandle(STD_OUTPUT_HANDLE);
+	lStdHandle = (int64_t)GetStdHandle(STD_OUTPUT_HANDLE);
 	hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
 	fp = _fdopen(hConHandle, "w");
 	*stdout = *fp;
 	setvbuf(stdout, NULL, _IONBF, 0);
 
 	// redirect unbuffered STDIN to the console
-	lStdHandle = (long)GetStdHandle(STD_INPUT_HANDLE);
+	lStdHandle = (int64_t)GetStdHandle(STD_INPUT_HANDLE);
 	hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
 	fp = _fdopen(hConHandle, "r");
 	*stdin = *fp;
 	setvbuf(stdin, NULL, _IONBF, 0);
 
 	// redirect unbuffered STDERR to the console
-	lStdHandle = (long)GetStdHandle(STD_ERROR_HANDLE);
+	lStdHandle = (int64_t)GetStdHandle(STD_ERROR_HANDLE);
 	hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
 	fp = _fdopen(hConHandle, "w");
 	*stderr = *fp;
@@ -428,7 +434,7 @@ void loop()
 					{
 						if (settings.key.size() != 0)
 						{
-							// Open Xbox Game Bar on button release only
+							// Open/close Xbox Game Bar on button release only
 							if (!is_open_xbox_game_bar_keys(settings.key))
 							{
 								for (std::size_t k = 0; k < settings.key.size(); ++k)
@@ -466,7 +472,7 @@ void loop()
 					{
 						if (settings.key.size() != 0)
 						{
-							// Open Xbox Game Bar on button release only
+							// Open/close Xbox Game Bar on button release only
 							if (is_open_xbox_game_bar_keys(settings.key))
 							{
 								key_tap(settings.key, 0, 1);
@@ -514,64 +520,72 @@ void loop()
 	}
 }
 
-#define WM_SYSICON (WM_USER + 1)
-
 // Variables
-HWND hWnd;
-HINSTANCE hCurrentInstance;
+HANDLE hMutex;
+MSG msg; // Here messages to the application are saved
+HINSTANCE hCurrentInstance = NULL;
 HMENU hMenu;
 NOTIFYICONDATA notifyIconData;
-TCHAR szTIP[64] = TEXT("Xbox Controller button remapper");
-char szClassName[] = "Xbox Controller button remapper";
+const UINT WM_NOTIFYICON = WM_APP + 1;
 
+// Forward declarations of functions
 // Procedures
 LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
 
-
-int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpszArgument, _In_ int nCmdShow)
+int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ PWSTR pCmdLine, _In_ int nCmdShow)
 {
-	// Try to open the mutex.
-	HANDLE hMutex = OpenMutex(MUTEX_ALL_ACCESS, 0, "Xbox-Controller-button-remapper");
+	// Try to create the mutex
+	hMutex = CreateMutex(NULL, FALSE, szProgramName);
 
-	if (!hMutex)
+	if (hMutex == NULL)
 	{
-		// Mutex doesn't exist. This is the first instance so create the mutex.
-		hMutex = CreateMutex(0, 0, "Xbox-Controller-button-remapper");
+		// Cannot create application mutex
+		fatal_error(L"Error starting the program.");
 	}
-	else
+	else if (GetLastError() == ERROR_ALREADY_EXISTS)
 	{
-		// The mutex exists so this is the second instance so return.
+		// The mutex exists so this is the second instance so return
+		message(L"Program is already running.");
 		return 0;
 	}
 
-	if (!hMutex)
-	{
-		// Cannot create application mutex.
-		fatal_error("Error");
-	}
-
 	// This is the handle for our window
-	MSG messages; // Here messages to the application are saved
-	hCurrentInstance = hThisInstance;
+	hCurrentInstance = hInstance;
 
-	WNDCLASS wincl;
-	ZeroMemory(&wincl, sizeof(wincl));
-	wincl.hInstance = hThisInstance;
-	wincl.lpszClassName = szClassName;
-	wincl.lpfnWndProc = WindowProc; // This function is called by windows
-	ATOM szClassName = RegisterClass(&wincl);
-	hWnd = CreateWindow((LPCTSTR)szClassName, "", 0, 0, 0, 0, 0, NULL, NULL, hThisInstance, NULL);
+	//WNDCLASS wincl;
+	//ZeroMemory(&wincl, sizeof(wincl));
+	//wincl.hInstance = hInstance;
+	//wincl.lpszClassName = szProgramName;
+	//wincl.lpfnWndProc = WindowProc;
+	//ATOM szWindowClass = RegisterClassEx(&wincl);
+
+	WNDCLASSEX wcex = { sizeof(wcex) };
+	//wcex.style = CS_HREDRAW | CS_VREDRAW;
+	wcex.lpfnWndProc = WindowProc;
+	wcex.hInstance = hInstance;
+	//wcex.hIcon = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_NOTIFICATIONICON));
+	//wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
+	//wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	//wcex.lpszMenuName = pszMenuName;
+	wcex.lpszClassName = szProgramName;
+	RegisterClassEx(&wcex);
+
+	HWND hWnd = CreateWindow(szProgramName, L"", 0, 0, 0, 0, 0, NULL, NULL, hCurrentInstance, NULL);
+
+	if (!hWnd)
+	{
+		return 0;
+	}
 
 	// Main
+	std::wstring path = GetExePath();
 
-	std::string path = GetExePath();
-
-	if (!ini.loadFile(path + "\\config.ini"))
+	if (!ini.loadFile(path + L"\\config.ini"))
 	{
-		error("Couldn't load config.ini. Using defaults.");
+		error(L"Couldn't load config.ini. Using defaults.");
 	}
 
-	debug = ini.getInteger("settings", "debug", 0) == 1;
+	debug = ini.getInteger(L"settings", L"debug", 0) == 1;
 
 	if (debug)
 	{
@@ -584,25 +598,27 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 	// Initialize SDL
 	if (SDL_Init(SDL_INIT_GAMECONTROLLER) < 0)
 	{
-		fatal_error(strcat("Couldn't initialize SDL: %s", SDL_GetError()));
+		//SDL_SetError("Test error.");
+		const char* error_msg = SDL_GetError();
+		const size_t size = strlen(error_msg) + 1;
+		wchar_t error_msg2[] = L"";
+		mbstowcs(error_msg2, error_msg, size);
+		fatal_error((L"Couldn't initialize SDL: " + std::wstring(error_msg2)).c_str());
 	}
-
-	//SDL_GameControllerAddMappingsFromFile("gamecontrollermapping.txt");
 
 	while (true)
 	{
-		while (PeekMessage(&messages, NULL, 0, 0, PM_REMOVE))
+		// Main message loop
+		// Will get messages until queue is clear
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
-			TranslateMessage(&messages);
-			DispatchMessage(&messages);
-		} // Will get messages until queue is clear
-		
-		if (messages.message == WM_QUIT)
-		{
-			// The app is closing so release the mutex.
-			ReleaseMutex(hMutex);
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
 
-			break;
+			if (msg.message == WM_QUIT)
+			{
+				return 0;
+			}
 		}
 
 		// Do a tick of any intensive stuff here such as graphics processing
@@ -611,66 +627,159 @@ int WINAPI WinMain(_In_ HINSTANCE hThisInstance, _In_opt_ HINSTANCE hPrevInstanc
 		Sleep(50);
 	}
 
-	return messages.wParam;
+	return msg.wParam;
 }
 
-
-// This function is called by the Windows function DispatchMessage()
-
+// This function is called by DispatchMessage()
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	// Handle the messages
 	switch (uMsg)
 	{
-	case WM_CREATE:
-	{
-		//memset(&notifyIconData, 0, sizeof(NOTIFYICONDATA));
-		ZeroMemory(&notifyIconData, sizeof(notifyIconData));
-		notifyIconData.cbSize = sizeof(notifyIconData);
-		notifyIconData.hWnd = hwnd;
-		notifyIconData.uID = ID_TRAY_APP_ICON;
-		notifyIconData.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
-		notifyIconData.uCallbackMessage = WM_SYSICON; // Set up our invented Windows Message
-		notifyIconData.hIcon = (HICON)LoadImage(hCurrentInstance, MAKEINTRESOURCE(IDI_ICON1), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR);
-		strncpy(notifyIconData.szTip, szTIP, sizeof(szTIP));
-		Shell_NotifyIcon(NIM_ADD, &notifyIconData);
-
-		hMenu = CreatePopupMenu();
-		AppendMenu(hMenu, MF_STRING, ID_TRAY_EXIT, TEXT("Exit"));
-	}
-	return 0;
-
-	// Our user defined WM_SYSICON message
-	case WM_SYSICON:
-	{
-		if (lParam == WM_RBUTTONDOWN)
+		case WM_CREATE:
 		{
-			// Get current mouse position
-			POINT curPoint;
-			GetCursorPos(&curPoint);
-			SetForegroundWindow(hwnd);
+			//memset(&notifyIconData, 0, sizeof(NOTIFYICONDATA));
+			//ZeroMemory(&notifyIconData, sizeof(notifyIconData));
+			//notifyIconData.cbSize = sizeof(notifyIconData);
+			//notifyIconData.hWnd = hwnd;
+			//notifyIconData.uID = ID_TRAY_APP_ICON;
+			//notifyIconData.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+			//notifyIconData.uCallbackMessage = WM_NOTIFYICON;
+			//notifyIconData.hIcon = (HICON)LoadImage(hCurrentInstance, MAKEINTRESOURCE(IDI_ICON), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR);
+			//strncpy(notifyIconData.szTip, szProgramName, sizeof(szProgramName));
+			//LoadString(hCurrentInstance, szProgramName, notifyIconData.szTip, ARRAYSIZE(notifyIconData.szTip));
+			//Shell_NotifyIcon(NIM_ADD, &notifyIconData);
 
-			// TrackPopupMenu blocks the app until TrackPopupMenu returns
-			UINT clicked = TrackPopupMenu(hMenu, TPM_RETURNCMD | TPM_NONOTIFY, curPoint.x, curPoint.y, 0, hwnd, NULL);
 
-			if (clicked == ID_TRAY_EXIT)
+			NOTIFYICONDATA notifyIconData = { sizeof(notifyIconData) };
+			notifyIconData.hWnd = hwnd;
+			// Add the icon, setting the icon, tooltip, and callback message
+			// The icon will be identified with the GUID
+			notifyIconData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_GUID;
+			notifyIconData.guidItem = __uuidof(ProgramIcon);
+			notifyIconData.uCallbackMessage = WM_NOTIFYICON;
+			LoadIconMetric(hCurrentInstance, MAKEINTRESOURCE(IDI_ICON), LIM_SMALL, &notifyIconData.hIcon);
+			//LoadString(hCurrentInstance, szProgramName, notifyIconData.szTip, ARRAYSIZE(notifyIconData.szTip));
+			//wcsncpy(notifyIconData.szTip, szProgramName, sizeof(szProgramName));
+			// This text will be shown as the icon's tooltip.
+			StringCchCopy(notifyIconData.szTip, ARRAYSIZE(notifyIconData.szTip), szProgramName);
+			Shell_NotifyIcon(NIM_ADD, &notifyIconData);
+
+			// NOTIFYICON_VERSION_4 is prefered
+			notifyIconData.uVersion = NOTIFYICON_VERSION_4;
+			//return Shell_NotifyIcon(NIM_SETVERSION, &notifyIconData);
+			Shell_NotifyIcon(NIM_SETVERSION, &notifyIconData);
+
+			hMenu = CreatePopupMenu();
+			AppendMenu(hMenu, MF_STRING, ID_TRAY_EXIT, L"Exit");
+		}
+		break;
+
+		case WM_COMMAND:
+		{
+			int const wmId = LOWORD(wParam);
+			// Parse the menu selections:
+			switch (wmId)
 			{
-				// Quit the application
-				Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
-				PostQuitMessage(0);
+				case IDM_EXIT:
+				{
+					DestroyWindow(hwnd);
+					break;
+				}
+
+				default:
+				{
+					return DefWindowProc(hwnd, uMsg, wParam, lParam);
+				}
 			}
 		}
-	}
-	break;
-
-	case WM_DESTROY:
-		close_controllers();
-
-		SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
-
-		PostQuitMessage(0);
 		break;
+
+		case WM_NOTIFYICON:
+		{
+			//if (lParam == WM_RBUTTONDOWN)
+			//{
+			//	// Get current mouse position
+			//	POINT curPoint;
+			//	GetCursorPos(&curPoint);
+			//	SetForegroundWindow(hwnd);
+
+			//	// TrackPopupMenu blocks the app until TrackPopupMenu returns
+			//	UINT clicked = TrackPopupMenu(hMenu, TPM_RETURNCMD | TPM_NONOTIFY, curPoint.x, curPoint.y, 0, hwnd, NULL);
+
+			//	if (clicked == ID_TRAY_EXIT)
+			//	{
+			//		// Quit the application
+			//		Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
+			//		PostQuitMessage(0);
+			//	}
+			//}
+
+			switch (LOWORD(lParam))
+			{
+			case WM_CONTEXTMENU:
+				POINT const pt = { LOWORD(wParam), HIWORD(wParam) };
+				HMENU hMenu = LoadMenu(hCurrentInstance, MAKEINTRESOURCE(IDR_CONTEXTMENU));
+
+				if (hMenu)
+				{
+					HMENU hSubMenu = GetSubMenu(hMenu, 0);
+
+					if (hSubMenu)
+					{
+						// our window must be foreground before calling TrackPopupMenu or the menu will not disappear when the user clicks away
+						SetForegroundWindow(hwnd);
+
+						// respect menu drop alignment
+						UINT uFlags = TPM_RIGHTBUTTON;
+						if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
+						{
+							uFlags |= TPM_RIGHTALIGN;
+						}
+						else
+						{
+							uFlags |= TPM_LEFTALIGN;
+						}
+
+						//TrackPopupMenu(hSubMenu, uFlags, pt.x, pt.y, 0, hwnd, NULL);
+						TrackPopupMenuEx(hSubMenu, uFlags, pt.x, pt.y, hwnd, NULL);
+					}
+
+					DestroyMenu(hMenu);
+				}
+
+				break;
+			}
+		}
+		break;
+
+		case WM_DESTROY:
+		{
+			// Quit the application
+
+			close_controllers();
+
+			SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
+
+			// Remove the tray icon
+			Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
+
+			PostQuitMessage(0);
+
+			if (hMutex != NULL)
+			{
+				// The app is closing so release and close the mutex
+				ReleaseMutex(hMutex);
+				CloseHandle(hMutex);
+			}
+		}
+		break;
+
+		default:
+		{
+			return DefWindowProc(hwnd, uMsg, wParam, lParam);
+		}
 	}
 
-	return DefWindowProc(hwnd, uMsg, wParam, lParam);
+	return 0;
 }
