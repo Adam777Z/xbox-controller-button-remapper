@@ -633,13 +633,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			notifyIconData.hWnd = hwnd;
 			// Add the icon, setting the icon, tooltip, and callback message
 			// The icon will be identified with the uID
-			notifyIconData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+			notifyIconData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP;
 			notifyIconData.uID = ID_TRAY_APP_ICON;
 			notifyIconData.uCallbackMessage = WM_NOTIFYICON;
 			LoadIconMetric(hCurrentInstance, MAKEINTRESOURCE(IDI_ICON), LIM_SMALL, &notifyIconData.hIcon);
+			// This text will be shown as the icon's tooltip.
 			//LoadString(hCurrentInstance, szProgramName, notifyIconData.szTip, ARRAYSIZE(notifyIconData.szTip));
 			//wcsncpy(notifyIconData.szTip, szProgramName, sizeof(szProgramName));
-			// This text will be shown as the icon's tooltip.
 			StringCchCopy(notifyIconData.szTip, ARRAYSIZE(notifyIconData.szTip), szProgramName);
 			Shell_NotifyIcon(NIM_ADD, &notifyIconData);
 
