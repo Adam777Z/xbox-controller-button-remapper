@@ -50,6 +50,7 @@ struct Controller
 static std::vector<Controller> controllers;
 handy::io::INIFile ini;
 bool debug = false;
+bool sdl_initialized = false;
 
 void message(const LPCWSTR&& text)
 {
@@ -67,17 +68,24 @@ void fatal_error(const LPCWSTR&& text)
 	exit(1);
 }
 
-std::wstring GetExeFileName()
+std::wstring get_exe_filename()
 {
 	wchar_t buffer[MAX_PATH];
 	GetModuleFileName(NULL, buffer, MAX_PATH);
 	return std::wstring(buffer);
 }
 
-std::wstring GetExePath()
+std::wstring get_exe_path()
 {
-	std::wstring f = GetExeFileName();
+	std::wstring f = get_exe_filename();
 	return f.substr(0, f.find_last_of(L"\\/"));
+}
+
+std::string get_date_time() {
+	std::time_t t = std::time(nullptr);
+	char date_time[20];
+	std::strftime(date_time, sizeof(date_time), "%Y-%m-%d %H:%M:%S", std::localtime(&t));
+	return date_time;
 }
 
 static void add_controller_mapping(char* guid)
@@ -129,7 +137,7 @@ static void add_controller(int i)
 	{
 		if (debug)
 		{
-			SDL_Log("Couldn't get controller ID: %s\n", SDL_GetError());
+			SDL_Log("%s: Could not get controller ID: %s\n", get_date_time().c_str(), SDL_GetError());
 		}
 
 		return;
@@ -149,7 +157,7 @@ static void add_controller(int i)
 
 	if (debug)
 	{
-		SDL_Log("Mapping: %s\n", SDL_GameControllerMappingForGUID(SDL_JoystickGetDeviceGUID(i)));
+		SDL_Log("%s: Mapping: %s\n", get_date_time().c_str(), SDL_GameControllerMappingForGUID(SDL_JoystickGetDeviceGUID(i)));
 	}
 
 	SDL_GameController* controller = SDL_GameControllerOpen(i);
@@ -157,7 +165,7 @@ static void add_controller(int i)
 	{
 		if (debug)
 		{
-			SDL_Log("Couldn't open controller: %s\n", SDL_GetError());
+			SDL_Log("%s: Could not open controller: %s\n", get_date_time().c_str(), SDL_GetError());
 		}
 
 		return;
@@ -170,7 +178,7 @@ static void add_controller(int i)
 
 	if (debug)
 	{
-		SDL_Log("Opened controller %d: %s\n", (i + 1), SDL_GameControllerName(controller));
+		SDL_Log("%s: Opened controller %d: %s\n", get_date_time().c_str(), (i + 1), SDL_GameControllerName(controller));
 	}
 }
 
@@ -180,7 +188,7 @@ static void close_controller(SDL_JoystickID controller_id)
 
 	if (i < 0)
 	{
-		// Can't find this controller
+		// Can not find this controller
 		return;
 	}
 
@@ -192,7 +200,7 @@ static void close_controller(SDL_JoystickID controller_id)
 
 	if (debug)
 	{
-		SDL_Log("Closed controller %d: %s\n", (i + 1), controller_name);
+		SDL_Log("%s: Closed controller %d: %s\n", get_date_time().c_str(), (i + 1), controller_name);
 	}
 }
 
@@ -207,7 +215,32 @@ static void close_controllers()
 
 	if (debug)
 	{
-		SDL_Log("Closed controllers.\n");
+		SDL_Log("%s: Closed controllers.\n", get_date_time().c_str());
+	}
+}
+
+static void initialize_sdl()
+{
+	if (sdl_initialized)
+	{
+		// Reinitialize SDL
+		close_controllers();
+		SDL_Quit();
+		sdl_initialized = false;
+	}
+
+	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
+
+	sdl_initialized = SDL_Init(SDL_INIT_GAMECONTROLLER) == 0;
+
+	if (!sdl_initialized)
+	{
+		//SDL_SetError("Test error.");
+		const char* error_msg = SDL_GetError();
+		const size_t size = strlen(error_msg) + 1;
+		wchar_t error_msg2[] = L"";
+		mbstowcs(error_msg2, error_msg, size);
+		fatal_error((L"Could not initialize SDL: " + std::wstring(error_msg2)).c_str());
 	}
 }
 
@@ -247,7 +280,7 @@ void key_down(int code)
 	}
 	else
 	{
-		inp.ki.wVk = 0; // virtual-key code, we're doing scan codes instead
+		inp.ki.wVk = 0; // virtual-key code, we are doing scan codes instead
 		inp.ki.dwFlags = KEYEVENTF_SCANCODE; // 0 for key press
 	}
 
@@ -270,7 +303,7 @@ void key_up(int code)
 	}
 	else
 	{
-		inp.ki.wVk = 0; // virtual-key code, we're doing scan codes instead
+		inp.ki.wVk = 0; // virtual-key code, we are doing scan codes instead
 		inp.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
 	}
 
@@ -311,7 +344,7 @@ void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
 
 		if (debug)
 		{
-			SDL_Log("Xbox Game Bar opened/closed.\n");
+			SDL_Log("%s: Xbox Game Bar opened/closed.\n", get_date_time().c_str());
 		}
 	}
 	else
@@ -393,8 +426,8 @@ void loop()
 			case SDL_CONTROLLERDEVICEADDED:
 				if (debug)
 				{
-					//SDL_Log("Controller %d added.\n", (int)SDL_JoystickGetDeviceInstanceID(event.cdevice.which));
-					SDL_Log("Controller %d added.\n", (int)event.cdevice.which + 1);
+					//SDL_Log("%s: Controller %d added.\n", get_date_time().c_str(), (int)SDL_JoystickGetDeviceInstanceID(event.cdevice.which));
+					SDL_Log("%s: Controller %d added.\n", get_date_time().c_str(), (int)event.cdevice.which + 1);
 				}
 
 				add_controller(event.cdevice.which);
@@ -404,8 +437,8 @@ void loop()
 			case SDL_CONTROLLERDEVICEREMOVED:
 				if (debug)
 				{
-					//SDL_Log("Controller %d removed.\n", (int)event.cdevice.which);
-					SDL_Log("Controller %d removed.\n", (int)find_controller(event.cdevice.which) + 1);
+					//SDL_Log("%s: Controller %d removed.\n", get_date_time().c_str(), (int)event.cdevice.which);
+					SDL_Log("%s: Controller %d removed.\n", get_date_time().c_str(), (int)find_controller(event.cdevice.which) + 1);
 				}
 
 				close_controller(event.cdevice.which);
@@ -415,17 +448,17 @@ void loop()
 			case SDL_CONTROLLERBUTTONDOWN:
 				if (debug)
 				{
-					SDL_Log("Controller %d button %s %s.\n", (int)event.cbutton.which + 1, SDL_GameControllerGetStringForButton((SDL_GameControllerButton)event.cbutton.button), event.cbutton.state ? "pressed" : "released");
+					SDL_Log("%s: Controller %d button %s %s.\n", get_date_time().c_str(), (int)find_controller(event.cdevice.which) + 1, SDL_GameControllerGetStringForButton((SDL_GameControllerButton)event.cbutton.button), event.cbutton.state ? "pressed" : "released");
 				}
 
 				if (event.cbutton.button == SDL_CONTROLLER_BUTTON_MISC1 || event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE)
 				{
 					if (debug)
 					{
-						SDL_Log("%s button pressed.\n", (event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE ? "Xbox" : "Share"));
+						SDL_Log("%s: %s button pressed.\n", get_date_time().c_str(), (event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE ? "Xbox" : "Share"));
 					}
 
-					i = find_controller(event.cbutton.which);
+					i = find_controller(event.cdevice.which);
 					settings = event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE ? controllers[i].settings.xbox : controllers[i].settings.share;
 
 					if (settings.hold_mode == 1)
@@ -453,17 +486,17 @@ void loop()
 			case SDL_CONTROLLERBUTTONUP:
 				if (debug)
 				{
-					SDL_Log("Controller %d button %s %s.\n", (int)event.cbutton.which + 1, SDL_GameControllerGetStringForButton((SDL_GameControllerButton)event.cbutton.button), event.cbutton.state ? "pressed" : "released");
+					SDL_Log("%s: Controller %d button %s %s.\n", get_date_time().c_str(), (int)find_controller(event.cdevice.which) + 1, SDL_GameControllerGetStringForButton((SDL_GameControllerButton)event.cbutton.button), event.cbutton.state ? "pressed" : "released");
 				}
 
 				if (event.cbutton.button == SDL_CONTROLLER_BUTTON_MISC1 || event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE)
 				{
 					if (debug)
 					{
-						SDL_Log("%s button released.\n", (event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE ? "Xbox" : "Share"));
+						SDL_Log("%s: %s button released.\n", get_date_time().c_str(), (event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE ? "Xbox" : "Share"));
 					}
 
-					i = find_controller(event.cbutton.which);
+					i = find_controller(event.cdevice.which);
 					settings = event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE ? controllers[i].settings.xbox : controllers[i].settings.share;
 
 					if (settings.hold_mode == 1)
@@ -510,7 +543,7 @@ void loop()
 			default:
 				if (debug)
 				{
-					SDL_Log("Event: %d\n", event.type);
+					SDL_Log("%s: Event: %d\n", get_date_time().c_str(), event.type);
 				}
 
 				break;
@@ -537,7 +570,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 
 	if (hMutex == NULL)
 	{
-		// Cannot create application mutex
+		// Can not create application mutex
 		fatal_error(L"Error starting the program.");
 	}
 	else if (GetLastError() == ERROR_ALREADY_EXISTS)
@@ -569,11 +602,15 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	}
 
 	// Main
-	std::wstring path = GetExePath();
+
+	// Initialize SDL
+	initialize_sdl();
+
+	std::wstring path = get_exe_path();
 
 	if (!ini.loadFile(path + L"\\config.ini"))
 	{
-		error(L"Couldn't load config.ini. Using defaults.");
+		error(L"Could not load config.ini. Using defaults.");
 	}
 
 	debug = ini.getInteger(L"settings", L"debug", 0) == 1;
@@ -581,20 +618,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	if (debug)
 	{
 		RedirectIOToConsole();
-		SDL_Log("Debug mode enabled.\n");
-	}
-
-	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
-
-	// Initialize SDL
-	if (SDL_Init(SDL_INIT_GAMECONTROLLER) < 0)
-	{
-		//SDL_SetError("Test error.");
-		const char* error_msg = SDL_GetError();
-		const size_t size = strlen(error_msg) + 1;
-		wchar_t error_msg2[] = L"";
-		mbstowcs(error_msg2, error_msg, size);
-		fatal_error((L"Couldn't initialize SDL: " + std::wstring(error_msg2)).c_str());
+		SDL_Log("%s: Debug mode enabled.\n", get_date_time().c_str());
 	}
 
 	while (true)
@@ -736,7 +760,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			close_controllers();
 
-			SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
+			//SDL_Quit();
+			atexit(SDL_Quit);
+			sdl_initialized = false;
 
 			// Remove the tray icon
 			Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
