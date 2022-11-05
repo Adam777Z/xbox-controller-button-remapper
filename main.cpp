@@ -13,6 +13,8 @@
 #include "INI.hpp"
 #include "SDL.h"
 #include "resource.h"
+#include <Xinput.h>
+#pragma comment(lib, "xinput.lib")
 
 // we need commctrl v6 for LoadIconMetric()
 #pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
@@ -638,6 +640,10 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 
 		// Do a tick of any intensive stuff here such as graphics processing
 		loop();
+
+		// Fix for controller disconnect on subsequent connections
+		XINPUT_CAPABILITIES capabilities;
+		XInputGetCapabilities(0, XINPUT_FLAG_GAMEPAD, &capabilities);
 
 		Sleep(50);
 	}
