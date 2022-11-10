@@ -694,7 +694,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		case WM_CREATE:
 		{
-			s_uTaskbarRestart = RegisterWindowMessage(TEXT("TaskbarCreated"));
+			s_uTaskbarRestart = RegisterWindowMessage(L"TaskbarCreated");
 			AddNotificationIcon(hwnd);
 		}
 		break;
