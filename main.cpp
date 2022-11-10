@@ -555,15 +555,42 @@ void loop()
 
 // Variables
 HANDLE hMutex;
-MSG msg; // Here messages to the application are saved
 HINSTANCE hCurrentInstance = NULL;
-HMENU hMenu;
+HWND hwnd;
+MSG msg; // Here messages to the application are saved
 NOTIFYICONDATA notifyIconData;
 const UINT WM_NOTIFYICON = WM_APP + 1;
+HMENU hMenu;
 
 // Forward declarations of functions
 // Procedures
 LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
+
+static void AddNotificationIcon(HWND hwnd)
+{
+	//NOTIFYICONDATA notifyIconData = { sizeof(notifyIconData) };
+	//notifyIconData.cbSize = sizeof(notifyIconData);
+	notifyIconData.cbSize = sizeof(NOTIFYICONDATA);
+	notifyIconData.hWnd = hwnd;
+	// Add the icon, setting the icon, tooltip, and callback message
+	// The icon will be identified with the uID
+	notifyIconData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP;
+	notifyIconData.uID = ID_TRAY_APP_ICON;
+	notifyIconData.uCallbackMessage = WM_NOTIFYICON;
+	LoadIconMetric(hCurrentInstance, MAKEINTRESOURCE(IDI_ICON), LIM_SMALL, &notifyIconData.hIcon);
+	// This text will be shown as the icon's tooltip.
+	//LoadString(hCurrentInstance, szProgramName, notifyIconData.szTip, ARRAYSIZE(notifyIconData.szTip));
+	//wcsncpy(notifyIconData.szTip, szProgramName, sizeof(szProgramName));
+	StringCchCopy(notifyIconData.szTip, ARRAYSIZE(notifyIconData.szTip), szProgramName);
+	Shell_NotifyIcon(NIM_ADD, &notifyIconData);
+
+	// NOTIFYICON_VERSION_4 is prefered
+	notifyIconData.uVersion = NOTIFYICON_VERSION_4;
+	Shell_NotifyIcon(NIM_SETVERSION, &notifyIconData);
+
+	/*hMenu = CreatePopupMenu();
+	AppendMenu(hMenu, MF_STRING, ID_TRAY_EXIT, L"Exit");*/
+}
 
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ PWSTR pCmdLine, _In_ int nCmdShow)
 {
@@ -645,6 +672,11 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		XINPUT_CAPABILITIES capabilities;
 		XInputGetCapabilities(0, XINPUT_FLAG_GAMEPAD, &capabilities);
 
+		/*if (!Shell_NotifyIcon(NIM_MODIFY, &notifyIconData))
+		{
+			AddNotificationIcon(hwnd);
+		}*/
+
 		Sleep(50);
 	}
 
@@ -654,31 +686,16 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 // This function is called by DispatchMessage()
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	hwnd = hwnd;
+	static UINT s_uTaskbarRestart;
+
 	// Handle the messages
 	switch (uMsg)
 	{
 		case WM_CREATE:
 		{
-			NOTIFYICONDATA notifyIconData = { sizeof(notifyIconData) };
-			notifyIconData.hWnd = hwnd;
-			// Add the icon, setting the icon, tooltip, and callback message
-			// The icon will be identified with the uID
-			notifyIconData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP;
-			notifyIconData.uID = ID_TRAY_APP_ICON;
-			notifyIconData.uCallbackMessage = WM_NOTIFYICON;
-			LoadIconMetric(hCurrentInstance, MAKEINTRESOURCE(IDI_ICON), LIM_SMALL, &notifyIconData.hIcon);
-			// This text will be shown as the icon's tooltip.
-			//LoadString(hCurrentInstance, szProgramName, notifyIconData.szTip, ARRAYSIZE(notifyIconData.szTip));
-			//wcsncpy(notifyIconData.szTip, szProgramName, sizeof(szProgramName));
-			StringCchCopy(notifyIconData.szTip, ARRAYSIZE(notifyIconData.szTip), szProgramName);
-			Shell_NotifyIcon(NIM_ADD, &notifyIconData);
-
-			// NOTIFYICON_VERSION_4 is prefered
-			notifyIconData.uVersion = NOTIFYICON_VERSION_4;
-			Shell_NotifyIcon(NIM_SETVERSION, &notifyIconData);
-
-			hMenu = CreatePopupMenu();
-			AppendMenu(hMenu, MF_STRING, ID_TRAY_EXIT, L"Exit");
+			s_uTaskbarRestart = RegisterWindowMessage(TEXT("TaskbarCreated"));
+			AddNotificationIcon(hwnd);
 		}
 		break;
 
@@ -724,38 +741,38 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			switch (LOWORD(lParam))
 			{
-			case WM_CONTEXTMENU:
-				POINT const pt = { LOWORD(wParam), HIWORD(wParam) };
-				HMENU hMenu = LoadMenu(hCurrentInstance, MAKEINTRESOURCE(IDR_CONTEXTMENU));
+				case WM_CONTEXTMENU:
+					POINT const pt = { LOWORD(wParam), HIWORD(wParam) };
+					HMENU hMenu = LoadMenu(hCurrentInstance, MAKEINTRESOURCE(IDR_CONTEXTMENU));
 
-				if (hMenu)
-				{
-					HMENU hSubMenu = GetSubMenu(hMenu, 0);
-
-					if (hSubMenu)
+					if (hMenu)
 					{
-						// our window must be foreground before calling TrackPopupMenu or the menu will not disappear when the user clicks away
-						SetForegroundWindow(hwnd);
+						HMENU hSubMenu = GetSubMenu(hMenu, 0);
 
-						// respect menu drop alignment
-						UINT uFlags = TPM_RIGHTBUTTON;
-						if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
+						if (hSubMenu)
 						{
-							uFlags |= TPM_RIGHTALIGN;
-						}
-						else
-						{
-							uFlags |= TPM_LEFTALIGN;
+							// our window must be foreground before calling TrackPopupMenu or the menu will not disappear when the user clicks away
+							SetForegroundWindow(hwnd);
+
+							// respect menu drop alignment
+							UINT uFlags = TPM_RIGHTBUTTON;
+							if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
+							{
+								uFlags |= TPM_RIGHTALIGN;
+							}
+							else
+							{
+								uFlags |= TPM_LEFTALIGN;
+							}
+
+							//TrackPopupMenu(hSubMenu, uFlags, pt.x, pt.y, 0, hwnd, NULL);
+							TrackPopupMenuEx(hSubMenu, uFlags, pt.x, pt.y, hwnd, NULL);
 						}
 
-						//TrackPopupMenu(hSubMenu, uFlags, pt.x, pt.y, 0, hwnd, NULL);
-						TrackPopupMenuEx(hSubMenu, uFlags, pt.x, pt.y, hwnd, NULL);
+						DestroyMenu(hMenu);
 					}
 
-					DestroyMenu(hMenu);
-				}
-
-				break;
+					break;
 			}
 		}
 		break;
@@ -771,6 +788,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			sdl_initialized = false;
 
 			// Remove the tray icon
+
+			/*NOTIFYICONDATA notifyIconData2;
+
+			notifyIconData2.cbSize = sizeof(NOTIFYICONDATA);
+			notifyIconData2.hWnd = hwnd;
+			notifyIconData2.uID = ID_TRAY_APP_ICON;*/
+
 			Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
 
 			PostQuitMessage(0);
@@ -786,6 +810,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		default:
 		{
+			if (uMsg == s_uTaskbarRestart)
+			{
+				AddNotificationIcon(hwnd);
+			}
+
 			return DefWindowProc(hwnd, uMsg, wParam, lParam);
 		}
 	}
