@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.6.0.0] - 2022-11-10
+- Fixed notification icon issues
+
 ## [1.5.0.0] - 2022-11-05
 - Fixed controller disconnect on subsequent connections
 - Fixes and improvements
@@ -52,6 +55,7 @@
 ## [1.0.0.0] - 2021-07-22
 - First release
 
+[1.6.0.0]: https://github.com/Adam777Z/xbox-controller-button-remapper/releases/tag/1.6.0.0
 [1.5.0.0]: https://github.com/Adam777Z/xbox-controller-button-remapper/releases/tag/1.5.0.0
 [1.4.0.0]: https://github.com/Adam777Z/xbox-controller-button-remapper/releases/tag/1.4.0.0
 [1.3.0.0]: https://github.com/Adam777Z/xbox-controller-button-remapper/releases/tag/1.3.0.0
