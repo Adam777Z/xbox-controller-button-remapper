@@ -1,15 +1,20 @@
 # Xbox Controller button remapper
 
-A small program that runs in the background and sends the configured key(s) when the Xbox/Guide button and/or Share button is pressed on the controller.
+A small program that runs in the background and sends the configured key(s) when the Xbox button and/or Share button is pressed on the controller.
+
+Configure the program using the config.ini file.
 
 Works with the Xbox Series X|S Controller that has the Share button.
 
 Make sure that the controller is updated to the latest firmware version. (Instructions: [Update your Xbox Wireless Controller](https://support.xbox.com/en-US/help/hardware-network/controller/update-xbox-wireless-controller))
 
-Currently only works with this setting disabled:\
-Settings - Gaming - Xbox Game Bar - Open Xbox Game Bar using this button on a controller: (X)
+Remapping the Xbox button only works when the **Open Game Bar using Xbox button on a controller** setting is disabled:\
+[Enable or Disable Open Game Bar using Xbox button on Controller in Windows 10](https://www.tenforums.com/tutorials/138967-enable-disable-open-xbox-game-bar-using-controller-windows-10-a.html)\
+[Enable or Disable Open Game Bar using Xbox button on Controller in Windows 11](https://www.elevenforum.com/t/enable-or-disable-open-game-bar-using-xbox-button-on-controller-in-windows-11.4290/)
 
-Configure the program using the config.ini file.
+Remapping the Share button only works when the **Windows Game Recording and Broadcasting** features are disabled:\
+[Enable or Disable Windows Game Recording and Broadcasting in Windows 10](https://www.tenforums.com/tutorials/51180-enable-disable-windows-game-recording-broadcasting-windows-10-a.html)\
+[Enable or Disable Windows Game Recording and Broadcasting in Windows 11](https://www.elevenforum.com/t/enable-or-disable-game-recording-for-captures-in-windows-11.17611/)
 
 ## Requirements
 - Xbox Controller
@@ -36,5 +41,5 @@ SDL\VisualC\x64\Release
 ## Credits
 - Thanks to Microsoft for the Xbox Controller
 - [button_on_360_guide](https://www.reddit.com/r/emulation/comments/1goval/any_way_to_map_the_middle_xbox_360_button/camujj7/) (GitHub: [1](https://github.com/pinumbernumber/Xbox-360-Guide-Button-Remapper), [2](https://github.com/CautemocSg/xbox-360-guide-remapper))\
-Thanks to the creator of the original program and the source code. I improved it.
+Thanks to the creator of the original program and the source code so it could be improved. It was improved.
 - [SDL](https://github.com/libsdl-org/SDL)
