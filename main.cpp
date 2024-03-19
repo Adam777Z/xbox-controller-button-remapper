@@ -388,7 +388,7 @@ bool inline is_share_button_pressed(int i)
 }*/
 
 // Console I/O in a Win32 GUI App
-// maximum number of lines the output console should have
+// Maximum number of lines the output console should have
 static const WORD MAX_CONSOLE_LINES = 500;
 
 void RedirectIOToConsole()
@@ -571,7 +571,7 @@ void loop()
 HANDLE hMutex;
 HINSTANCE hCurrentInstance = NULL;
 HWND hWnd;
-MSG msg; // Here messages to the application are saved
+MSG msg; // Messages to the application are saved here
 NOTIFYICONDATA notifyIconData;
 const UINT WM_NOTIFYICON = WM_APP + 1;
 HMENU hMenu;
@@ -592,7 +592,7 @@ static void AddNotificationIcon(HWND hWnd)
 	notifyIconData.uID = ID_TRAY_APP_ICON;
 	notifyIconData.uCallbackMessage = WM_NOTIFYICON;
 	LoadIconMetric(hCurrentInstance, MAKEINTRESOURCE(IDI_ICON), LIM_SMALL, &notifyIconData.hIcon);
-	// This text will be shown as the icon's tooltip.
+	// This text will be shown as the icon's tooltip
 	//LoadString(hCurrentInstance, szProgramName, notifyIconData.szTip, ARRAYSIZE(notifyIconData.szTip));
 	//wcsncpy(notifyIconData.szTip, szProgramName, sizeof(szProgramName));
 	StringCchCopy(notifyIconData.szTip, ARRAYSIZE(notifyIconData.szTip), szProgramName);
@@ -623,7 +623,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		return 0;
 	}
 
-	// This is the handle for our window
+	// This is the handle for the window
 	hCurrentInstance = hInstance;
 
 	WNDCLASSEX wcex = { sizeof(wcex) };
@@ -735,23 +735,23 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		case WM_NOTIFYICON:
 		{
-			//if (lParam == WM_RBUTTONDOWN)
-			//{
-			//	// Get current mouse position
-			//	POINT curPoint;
-			//	GetCursorPos(&curPoint);
-			//	SetForegroundWindow(hWnd);
+			/*if (lParam == WM_RBUTTONDOWN)
+			{
+				// Get current mouse cursor position
+				POINT curPoint;
+				GetCursorPos(&curPoint);
+				SetForegroundWindow(hWnd);
 
-			//	// TrackPopupMenu blocks the app until TrackPopupMenu returns
-			//	UINT clicked = TrackPopupMenu(hMenu, TPM_RETURNCMD | TPM_NONOTIFY, curPoint.x, curPoint.y, 0, hWnd, NULL);
+				// TrackPopupMenu blocks the app until TrackPopupMenu returns
+				UINT clicked = TrackPopupMenu(hMenu, TPM_RETURNCMD | TPM_NONOTIFY, curPoint.x, curPoint.y, 0, hWnd, NULL);
 
-			//	if (clicked == ID_TRAY_EXIT)
-			//	{
-			//		// Quit the application
-			//		Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
-			//		PostQuitMessage(0);
-			//	}
-			//}
+				if (clicked == ID_TRAY_EXIT)
+				{
+					// Quit the application
+					Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
+					PostQuitMessage(0);
+				}
+			}*/
 
 			switch (LOWORD(lParam))
 			{
@@ -765,10 +765,10 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 						if (hSubMenu)
 						{
-							// our window must be foreground before calling TrackPopupMenu or the menu will not disappear when the user clicks away
+							// The window must be foreground before calling TrackPopupMenu or the menu will not disappear when the user clicks away
 							SetForegroundWindow(hWnd);
 
-							// respect menu drop alignment
+							// Respect menu drop alignment
 							UINT uFlags = TPM_RIGHTBUTTON;
 							if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
 							{
@@ -815,7 +815,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			if (hMutex != NULL)
 			{
-				// The app is closing so release and close the mutex
+				// The application is closing so release and close the mutex
 				ReleaseMutex(hMutex);
 				CloseHandle(hMutex);
 			}
