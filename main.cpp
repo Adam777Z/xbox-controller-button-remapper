@@ -132,63 +132,6 @@ static int find_controller(SDL_JoystickID controller_id)
 	return -1;
 }
 
-static void add_controller(SDL_JoystickID controller_id)
-{
-	if (controller_id < 0)
-	{
-		if (debug)
-		{
-			SDL_Log("%s: Could not get controller ID: %s\n", get_date_time().c_str(), SDL_GetError());
-		}
-
-		return;
-	}
-
-	if (find_controller(controller_id) >= 0)
-	{
-		// Already have this controller
-		return;
-	}
-
-	char guid[64];
-	SDL_GetJoystickGUIDString(SDL_GetJoystickInstanceGUID(controller_id), guid, sizeof(guid));
-	add_controller_mapping(guid);
-
-	if (debug)
-	{
-		SDL_Log("%s: Mapping: %s\n", get_date_time().c_str(), SDL_GetGamepadMappingForGUID(SDL_GetJoystickInstanceGUID(controller_id)));
-	}
-
-	SDL_Gamepad* controller = SDL_OpenGamepad(controller_id);
-	if (!controller)
-	{
-		if (debug)
-		{
-			SDL_Log("%s: Could not open controller: %s\n", get_date_time().c_str(), SDL_GetError());
-		}
-
-		return;
-	}
-
-	int i = SDL_GetGamepadPlayerIndex(controller);
-
-	int num_gamepads;
-	SDL_GetGamepads(&num_gamepads);
-
-	if (controllers.size() != num_gamepads)
-	{
-		controllers.resize(num_gamepads);
-	}
-
-	controllers[i].controller = controller;
-	load_controller_config(i);
-
-	if (debug)
-	{
-		SDL_Log("%s: Opened controller %d: %s\n", get_date_time().c_str(), (i + 1), SDL_GetGamepadName(controller));
-	}
-}
-
 static void add_controllers()
 {
 	int num_gamepads;
@@ -233,28 +176,6 @@ static void add_controllers()
 		}
 
 		SDL_free(gamepads);
-	}
-}
-
-static void close_controller(SDL_JoystickID controller_id)
-{
-	int i = find_controller(controller_id);
-
-	if (i < 0)
-	{
-		// Can not find this controller
-		return;
-	}
-
-	const char* controller_name = SDL_GetGamepadName(controllers[i].controller);
-
-	SDL_CloseGamepad(controllers[i].controller);
-
-	controllers.erase(controllers.begin() + i);
-
-	if (debug)
-	{
-		SDL_Log("%s: Closed controller %d: %s\n", get_date_time().c_str(), (i + 1), controller_name);
 	}
 }
 
@@ -376,16 +297,6 @@ void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
 		key_up(code[i]);
 	}
 }
-
-/*bool inline is_xbox_button_pressed(int i)
-{
-	return SDL_GetGamepadButton(controllers[i].controller, SDL_GAMEPAD_BUTTON_GUIDE) == SDL_PRESSED;
-}
-
-bool inline is_share_button_pressed(int i)
-{
-	return SDL_GetGamepadButton(controllers[i].controller, SDL_GAMEPAD_BUTTON_MISC1) == SDL_PRESSED;
-}*/
 
 // Console I/O in a Win32 GUI App
 // Maximum number of lines the output console should have
