@@ -44,7 +44,7 @@ struct ControllerSettings
 
 struct Controller
 {
-	SDL_GameController* controller{};
+	SDL_Gamepad* controller{};
 	ControllerSettings settings;
 	hrc::time_point button_depressed = hrc::now();
 };
@@ -99,7 +99,7 @@ static void add_controller_mapping(char* guid)
 	SDL_strlcat(mapping_string, "a:b0,b:b1,x:b2,y:b3,back:b6,guide:b10,start:b7,leftstick:b8,rightstick:b9,leftshoulder:b4,rightshoulder:b5,dpup:h0.1,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:a4,righttrigger:a5,", sizeof(mapping_string));
 	SDL_strlcat(mapping_string, "misc1:b11,", sizeof(mapping_string));
 
-	SDL_GameControllerAddMapping(mapping_string);
+	SDL_AddGamepadMapping(mapping_string);
 }
 
 static void load_controller_config(int i)
@@ -124,7 +124,7 @@ static int find_controller(SDL_JoystickID controller_id)
 {
 	for (int i = 0; i < controllers.size(); ++i)
 	{
-		if (controller_id == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controllers[i].controller)))
+		if (controller_id == SDL_GetGamepadInstanceID(controllers[i].controller))
 		{
 			return i;
 		}
@@ -132,9 +132,8 @@ static int find_controller(SDL_JoystickID controller_id)
 	return -1;
 }
 
-static void add_controller(int i)
+static void add_controller(SDL_JoystickID controller_id)
 {
-	SDL_JoystickID controller_id = SDL_JoystickGetDeviceInstanceID(i);
 	if (controller_id < 0)
 	{
 		if (debug)
@@ -152,17 +151,15 @@ static void add_controller(int i)
 	}
 
 	char guid[64];
-
-	SDL_JoystickGetGUIDString(SDL_JoystickGetDeviceGUID(i), guid, sizeof(guid));
-
+	SDL_GetJoystickGUIDString(SDL_GetJoystickInstanceGUID(controller_id), guid, sizeof(guid));
 	add_controller_mapping(guid);
 
 	if (debug)
 	{
-		SDL_Log("%s: Mapping: %s\n", get_date_time().c_str(), SDL_GameControllerMappingForGUID(SDL_JoystickGetDeviceGUID(i)));
+		SDL_Log("%s: Mapping: %s\n", get_date_time().c_str(), SDL_GetGamepadMappingForGUID(SDL_GetJoystickInstanceGUID(controller_id)));
 	}
 
-	SDL_GameController* controller = SDL_GameControllerOpen(i);
+	SDL_Gamepad* controller = SDL_OpenGamepad(controller_id);
 	if (!controller)
 	{
 		if (debug)
@@ -173,14 +170,73 @@ static void add_controller(int i)
 		return;
 	}
 
-	controllers.resize((int64_t)(i) + 1);
-	controllers[i].controller = controller;
+	int i = SDL_GetGamepadPlayerIndex(controller);
+	//int i = SDL_GetGamepadInstancePlayerIndex(controller_id);
 
+	int num_gamepads;
+	SDL_GetGamepads(&num_gamepads);
+
+	if (controllers.size() != num_gamepads)
+	{
+		controllers.resize(num_gamepads);
+	}
+
+	controllers[i].controller = controller;
 	load_controller_config(i);
 
 	if (debug)
 	{
-		SDL_Log("%s: Opened controller %d: %s\n", get_date_time().c_str(), (i + 1), SDL_GameControllerName(controller));
+		SDL_Log("%s: Opened controller %d: %s\n", get_date_time().c_str(), (i + 1), SDL_GetGamepadName(controller));
+	}
+}
+
+static void add_controllers()
+{
+	int num_gamepads;
+	SDL_JoystickID* gamepads = SDL_GetGamepads(&num_gamepads);
+
+	if (gamepads) {
+		if (controllers.size() != num_gamepads)
+		{
+			controllers.resize(num_gamepads);
+		}
+
+		for (int i = 0; i < num_gamepads; ++i) {
+			/*SDL_JoystickID controller_id = SDL_GetGamepadInstanceID(SDL_GetGamepadFromPlayerIndex(i));
+			add_controller(controller_id);*/
+
+			SDL_JoystickID instance_id = gamepads[i];
+
+			char guid[64];
+			SDL_GetJoystickGUIDString(SDL_GetJoystickInstanceGUID(instance_id), guid, sizeof(guid));
+			add_controller_mapping(guid);
+
+			if (debug)
+			{
+				SDL_Log("%s: Mapping: %s\n", get_date_time().c_str(), SDL_GetGamepadMappingForGUID(SDL_GetJoystickInstanceGUID(instance_id)));
+			}
+
+			SDL_Gamepad* controller = SDL_OpenGamepad(instance_id);
+			if (!controller)
+			{
+				if (debug)
+				{
+					SDL_Log("%s: Could not open controller: %s\n", get_date_time().c_str(), SDL_GetError());
+				}
+
+				continue;
+			}
+
+			controllers[i].controller = controller;
+			load_controller_config(i);
+
+			if (debug)
+			{
+				SDL_Log("%s: Opened controller %d: %s\n", get_date_time().c_str(), (i + 1), SDL_GetGamepadName(controller));
+			}
+		}
+
+		SDL_free(gamepads);
 	}
 }
 
@@ -194,9 +250,9 @@ static void close_controller(SDL_JoystickID controller_id)
 		return;
 	}
 
-	const char* controller_name = SDL_GameControllerName(controllers[i].controller);
+	const char* controller_name = SDL_GetGamepadName(controllers[i].controller);
 
-	SDL_GameControllerClose(controllers[i].controller);
+	SDL_CloseGamepad(controllers[i].controller);
 
 	controllers.erase(controllers.begin() + i);
 
@@ -210,7 +266,7 @@ static void close_controllers()
 {
 	for (int i = 0; i < controllers.size(); ++i)
 	{
-		SDL_GameControllerClose(controllers[i].controller);
+		SDL_CloseGamepad(controllers[i].controller);
 	}
 
 	controllers.clear();
@@ -218,6 +274,22 @@ static void close_controllers()
 	if (debug)
 	{
 		SDL_Log("%s: Closed controllers.\n", get_date_time().c_str());
+	}
+}
+
+static void update_controllers()
+{
+	int num_gamepads;
+	SDL_GetGamepads(&num_gamepads);
+
+	int num_controllers = controllers.size();
+
+	// Update only if the number of controllers changed
+	if (num_gamepads != num_controllers)
+	{
+		// On change close and open all controllers to ensure correct order
+		close_controllers();
+		add_controllers();
 	}
 }
 
@@ -233,7 +305,7 @@ static void initialize_sdl()
 
 	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
 
-	sdl_initialized = SDL_Init(SDL_INIT_GAMECONTROLLER) == 0;
+	sdl_initialized = SDL_Init(SDL_INIT_GAMEPAD) == 0;
 
 	if (!sdl_initialized)
 	{
@@ -360,12 +432,12 @@ void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
 
 //bool inline is_xbox_button_pressed(int i)
 //{
-//	return SDL_GameControllerGetButton(controllers[i].controller, SDL_CONTROLLER_BUTTON_GUIDE) == SDL_PRESSED;
+//	return SDL_GetGamepadButton(controllers[i].controller, SDL_GAMEPAD_BUTTON_GUIDE) == SDL_PRESSED;
 //}
-
+//
 //bool inline is_share_button_pressed(int i)
 //{
-//	return SDL_GameControllerGetButton(controllers[i].controller, SDL_CONTROLLER_BUTTON_MISC1) == SDL_PRESSED;
+//	return SDL_GetGamepadButton(controllers[i].controller, SDL_GAMEPAD_BUTTON_MISC1) == SDL_PRESSED;
 //}
 
 // Console I/O in a Win32 GUI App
@@ -418,50 +490,34 @@ void RedirectIOToConsole()
 void loop()
 {
 	SDL_Event event;
-	int i;
+	int i; // Controller ID
 	KeySettings settings;
 
 	while (SDL_PollEvent(&event))
 	{
 		switch (event.type)
 		{
-			case SDL_CONTROLLERDEVICEADDED:
-				if (debug)
-				{
-					//SDL_Log("%s: Controller %d added.\n", get_date_time().c_str(), (int)SDL_JoystickGetDeviceInstanceID(event.cdevice.which));
-					SDL_Log("%s: Controller %d added.\n", get_date_time().c_str(), (int)event.cdevice.which + 1);
-				}
-
-				add_controller(event.cdevice.which);
+			case SDL_EVENT_GAMEPAD_ADDED:
+			case SDL_EVENT_GAMEPAD_REMOVED:
+				update_controllers();
 
 				break;
 
-			case SDL_CONTROLLERDEVICEREMOVED:
+			case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
 				if (debug)
 				{
-					//SDL_Log("%s: Controller %d removed.\n", get_date_time().c_str(), (int)event.cdevice.which);
-					SDL_Log("%s: Controller %d removed.\n", get_date_time().c_str(), (int)find_controller(event.cdevice.which) + 1);
+					SDL_Log("%s: Controller %d button %s %s.\n", get_date_time().c_str(), find_controller(event.gdevice.which) + 1, SDL_GetGamepadStringForButton((SDL_GamepadButton)event.gbutton.button), event.gbutton.state ? "pressed" : "released");
 				}
 
-				close_controller(event.cdevice.which);
-
-				break;
-
-			case SDL_CONTROLLERBUTTONDOWN:
-				if (debug)
-				{
-					SDL_Log("%s: Controller %d button %s %s.\n", get_date_time().c_str(), (int)find_controller(event.cdevice.which) + 1, SDL_GameControllerGetStringForButton((SDL_GameControllerButton)event.cbutton.button), event.cbutton.state ? "pressed" : "released");
-				}
-
-				if (event.cbutton.button == SDL_CONTROLLER_BUTTON_MISC1 || event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE)
+				if (event.gbutton.button == SDL_GAMEPAD_BUTTON_MISC1 || event.gbutton.button == SDL_GAMEPAD_BUTTON_GUIDE)
 				{
 					if (debug)
 					{
-						SDL_Log("%s: %s button pressed.\n", get_date_time().c_str(), (event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE ? "Xbox" : "Share"));
+						SDL_Log("%s: %s button pressed.\n", get_date_time().c_str(), (event.gbutton.button == SDL_GAMEPAD_BUTTON_GUIDE ? "Xbox" : "Share"));
 					}
 
-					i = find_controller(event.cdevice.which);
-					settings = event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE ? controllers[i].settings.xbox : controllers[i].settings.share;
+					i = find_controller(event.gdevice.which);
+					settings = event.gbutton.button == SDL_GAMEPAD_BUTTON_GUIDE ? controllers[i].settings.xbox : controllers[i].settings.share;
 
 					if (settings.hold_mode == 1)
 					{
@@ -485,21 +541,21 @@ void loop()
 
 				break;
 
-			case SDL_CONTROLLERBUTTONUP:
+			case SDL_EVENT_GAMEPAD_BUTTON_UP:
 				if (debug)
 				{
-					SDL_Log("%s: Controller %d button %s %s.\n", get_date_time().c_str(), (int)find_controller(event.cdevice.which) + 1, SDL_GameControllerGetStringForButton((SDL_GameControllerButton)event.cbutton.button), event.cbutton.state ? "pressed" : "released");
+					SDL_Log("%s: Controller %d button %s %s.\n", get_date_time().c_str(), find_controller(event.gdevice.which) + 1, SDL_GetGamepadStringForButton((SDL_GamepadButton)event.gbutton.button), event.gbutton.state ? "pressed" : "released");
 				}
 
-				if (event.cbutton.button == SDL_CONTROLLER_BUTTON_MISC1 || event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE)
+				if (event.gbutton.button == SDL_GAMEPAD_BUTTON_MISC1 || event.gbutton.button == SDL_GAMEPAD_BUTTON_GUIDE)
 				{
 					if (debug)
 					{
-						SDL_Log("%s: %s button released.\n", get_date_time().c_str(), (event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE ? "Xbox" : "Share"));
+						SDL_Log("%s: %s button released.\n", get_date_time().c_str(), (event.gbutton.button == SDL_GAMEPAD_BUTTON_GUIDE ? "Xbox" : "Share"));
 					}
 
-					i = find_controller(event.cdevice.which);
-					settings = event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE ? controllers[i].settings.xbox : controllers[i].settings.share;
+					i = find_controller(event.gdevice.which);
+					settings = event.gbutton.button == SDL_GAMEPAD_BUTTON_GUIDE ? controllers[i].settings.xbox : controllers[i].settings.share;
 
 					if (settings.hold_mode == 1)
 					{
@@ -538,6 +594,30 @@ void loop()
 							}
 						}
 					}
+				}
+
+				break;
+
+			case SDL_EVENT_GAMEPAD_REMAPPED:
+				if (debug)
+				{
+					SDL_Log("%s: Mapping was updated for Controller %d.\n", get_date_time().c_str(), find_controller(event.gdevice.which) + 1);
+				}
+
+				break;
+			
+			case SDL_EVENT_JOYSTICK_ADDED:
+				if (debug)
+				{
+					SDL_Log("%s: Controller connected.\n", get_date_time().c_str());
+				}
+
+				break;
+
+			case SDL_EVENT_JOYSTICK_REMOVED:
+				if (debug)
+				{
+					SDL_Log("%s: Controller disconnected.\n", get_date_time().c_str());
 				}
 
 				break;
