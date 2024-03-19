@@ -106,15 +106,15 @@ static void load_controller_config(int i)
 {
 	std::wstring controller = L"controller" + std::to_wstring(i + 1);
 
-	controllers[i].settings.share.key = ini.getIntegers(controller, L"share_key", { 91,56,84 });
+	controllers[i].settings.share.key = ini.getIntegers(controller, L"share_key", { 0 });
 	controllers[i].settings.share.hold_mode = ini.getInteger(controller, L"share_hold_mode", 2);
-	controllers[i].settings.share.longpress_key = ini.getIntegers(controller, L"share_longpress_key", { 91,56,19 });
+	controllers[i].settings.share.longpress_key = ini.getIntegers(controller, L"share_longpress_key", { 0 });
 	controllers[i].settings.share.longpress_duration = ini.getInteger(controller, L"share_longpress_duration", 1000);
 	controllers[i].settings.share.delay = ini.getInteger(controller, L"share_delay", 0);
 	controllers[i].settings.share.duration = ini.getInteger(controller, L"share_duration", 1);
-	controllers[i].settings.xbox.key = ini.getIntegers(controller, L"xbox_key", { 91,34 });
-	controllers[i].settings.xbox.hold_mode = ini.getInteger(controller, L"xbox_hold_mode", 1);
-	controllers[i].settings.xbox.longpress_key = ini.getIntegers(controller, L"xbox_longpress_key", { 1 });
+	controllers[i].settings.xbox.key = ini.getIntegers(controller, L"xbox_key", { 0 });
+	controllers[i].settings.xbox.hold_mode = ini.getInteger(controller, L"xbox_hold_mode", 2);
+	controllers[i].settings.xbox.longpress_key = ini.getIntegers(controller, L"xbox_longpress_key", { 0 });
 	controllers[i].settings.xbox.longpress_duration = ini.getInteger(controller, L"xbox_longpress_duration", 1000);
 	controllers[i].settings.xbox.delay = ini.getInteger(controller, L"xbox_delay", 0);
 	controllers[i].settings.xbox.duration = ini.getInteger(controller, L"xbox_duration", 1);
