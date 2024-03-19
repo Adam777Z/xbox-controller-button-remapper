@@ -388,7 +388,7 @@ bool inline is_share_button_pressed(int i)
 }*/
 
 // Console I/O in a Win32 GUI App
-// maximum mumber of lines the output console should have
+// maximum number of lines the output console should have
 static const WORD MAX_CONSOLE_LINES = 500;
 
 void RedirectIOToConsole()
