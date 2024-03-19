@@ -598,7 +598,7 @@ static void AddNotificationIcon(HWND hWnd)
 	StringCchCopy(notifyIconData.szTip, ARRAYSIZE(notifyIconData.szTip), szProgramName);
 	Shell_NotifyIcon(NIM_ADD, &notifyIconData);
 
-	// NOTIFYICON_VERSION_4 is prefered
+	// NOTIFYICON_VERSION_4 is preferred
 	notifyIconData.uVersion = NOTIFYICON_VERSION_4;
 	Shell_NotifyIcon(NIM_SETVERSION, &notifyIconData);
 
