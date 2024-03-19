@@ -16,7 +16,7 @@
 #include <Xinput.h>
 #pragma comment(lib, "xinput.lib")
 
-// we need commctrl v6 for LoadIconMetric()
+// Need commctrl v6 for LoadIconMetric()
 #pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #pragma comment(lib, "comctl32.lib")
 
@@ -146,7 +146,7 @@ static void add_controller(SDL_JoystickID controller_id)
 
 	if (find_controller(controller_id) >= 0)
 	{
-		// We already have this controller
+		// Already have this controller
 		return;
 	}
 
@@ -171,7 +171,6 @@ static void add_controller(SDL_JoystickID controller_id)
 	}
 
 	int i = SDL_GetGamepadPlayerIndex(controller);
-	//int i = SDL_GetGamepadInstancePlayerIndex(controller_id);
 
 	int num_gamepads;
 	SDL_GetGamepads(&num_gamepads);
@@ -202,9 +201,6 @@ static void add_controllers()
 		}
 
 		for (int i = 0; i < num_gamepads; ++i) {
-			/*SDL_JoystickID controller_id = SDL_GetGamepadInstanceID(SDL_GetGamepadFromPlayerIndex(i));
-			add_controller(controller_id);*/
-
 			SDL_JoystickID instance_id = gamepads[i];
 
 			char guid[64];
@@ -318,29 +314,6 @@ static void initialize_sdl()
 	}
 }
 
-bool is_open_xbox_game_bar_keys(std::vector<int> code)
-{
-	bool key1 = false;
-	bool key2 = false;
-
-	if (code.size() == 2)
-	{
-		for (std::size_t i = 0; i < code.size(); ++i)
-		{
-			if (code[i] == 91 || code[i] == 92)
-			{
-				key1 = true;
-			}
-			else if (code[i] == 34)
-			{
-				key2 = true;
-			}
-		}
-	}
-
-	return key1 && key2;
-}
-
 void key_down(int code)
 {
 	INPUT inp{};
@@ -354,7 +327,7 @@ void key_down(int code)
 	}
 	else
 	{
-		inp.ki.wVk = 0; // virtual-key code, we are doing scan codes instead
+		inp.ki.wVk = 0; // virtual-key code, doing scan codes instead
 		inp.ki.dwFlags = KEYEVENTF_SCANCODE; // 0 for key press
 	}
 
@@ -377,7 +350,7 @@ void key_up(int code)
 	}
 	else
 	{
-		inp.ki.wVk = 0; // virtual-key code, we are doing scan codes instead
+		inp.ki.wVk = 0; // virtual-key code, doing scan codes instead
 		inp.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
 	}
 
@@ -391,54 +364,28 @@ void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
 {
 	std::this_thread::sleep_for(std::chrono::milliseconds(delay));
 
-	bool open_xbox_game_bar_keys = is_open_xbox_game_bar_keys(code);
-
-	// Open/close Xbox Game Bar on button release only
-	if (!open_xbox_game_bar_keys)
+	for (std::size_t i = 0; i < code.size(); ++i)
 	{
-		for (std::size_t i = 0; i < code.size(); ++i)
-		{
-			key_down(code[i]);
-		}
+		key_down(code[i]);
 	}
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(duration));
 
-	if (open_xbox_game_bar_keys)
+	for (std::size_t i = 0; i < code.size(); ++i)
 	{
-		for (std::size_t i = 0; i < code.size(); ++i)
-		{
-			key_down(code[i]);
-		}
-
-		for (std::size_t i = 0; i < code.size(); ++i)
-		{
-			key_up(code[i]);
-		}
-
-		if (debug)
-		{
-			SDL_Log("%s: Xbox Game Bar opened/closed.\n", get_date_time().c_str());
-		}
-	}
-	else
-	{
-		for (std::size_t i = 0; i < code.size(); ++i)
-		{
-			key_up(code[i]);
-		}
+		key_up(code[i]);
 	}
 }
 
-//bool inline is_xbox_button_pressed(int i)
-//{
-//	return SDL_GetGamepadButton(controllers[i].controller, SDL_GAMEPAD_BUTTON_GUIDE) == SDL_PRESSED;
-//}
-//
-//bool inline is_share_button_pressed(int i)
-//{
-//	return SDL_GetGamepadButton(controllers[i].controller, SDL_GAMEPAD_BUTTON_MISC1) == SDL_PRESSED;
-//}
+/*bool inline is_xbox_button_pressed(int i)
+{
+	return SDL_GetGamepadButton(controllers[i].controller, SDL_GAMEPAD_BUTTON_GUIDE) == SDL_PRESSED;
+}
+
+bool inline is_share_button_pressed(int i)
+{
+	return SDL_GetGamepadButton(controllers[i].controller, SDL_GAMEPAD_BUTTON_MISC1) == SDL_PRESSED;
+}*/
 
 // Console I/O in a Win32 GUI App
 // maximum mumber of lines the output console should have
@@ -482,8 +429,7 @@ void RedirectIOToConsole()
 	*stderr = *fp;
 	setvbuf(stderr, NULL, _IONBF, 0);
 
-	// make cout, wcout, cin, wcin, wcerr, cerr, wclog and clog
-	// point to console as well
+	// make cout, wcout, cin, wcin, wcerr, cerr, wclog, and clog point to console as well
 	ios::sync_with_stdio();
 }
 
@@ -523,13 +469,9 @@ void loop()
 					{
 						if (settings.key.size() != 0)
 						{
-							// Open/close Xbox Game Bar on button release only
-							if (!is_open_xbox_game_bar_keys(settings.key))
+							for (std::size_t k = 0; k < settings.key.size(); ++k)
 							{
-								for (std::size_t k = 0; k < settings.key.size(); ++k)
-								{
-									key_down(settings.key[k]);
-								}
+								key_down(settings.key[k]);
 							}
 						}
 					}
@@ -561,17 +503,9 @@ void loop()
 					{
 						if (settings.key.size() != 0)
 						{
-							// Open/close Xbox Game Bar on button release only
-							if (is_open_xbox_game_bar_keys(settings.key))
+							for (std::size_t k = 0; k < settings.key.size(); ++k)
 							{
-								key_tap(settings.key, 0, 1);
-							}
-							else
-							{
-								for (std::size_t k = 0; k < settings.key.size(); ++k)
-								{
-									key_up(settings.key[k]);
-								}
+								key_up(settings.key[k]);
 							}
 						}
 					}
@@ -636,7 +570,7 @@ void loop()
 // Variables
 HANDLE hMutex;
 HINSTANCE hCurrentInstance = NULL;
-HWND hwnd;
+HWND hWnd;
 MSG msg; // Here messages to the application are saved
 NOTIFYICONDATA notifyIconData;
 const UINT WM_NOTIFYICON = WM_APP + 1;
@@ -646,12 +580,12 @@ HMENU hMenu;
 // Procedures
 LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
 
-static void AddNotificationIcon(HWND hwnd)
+static void AddNotificationIcon(HWND hWnd)
 {
 	//NOTIFYICONDATA notifyIconData = { sizeof(notifyIconData) };
 	//notifyIconData.cbSize = sizeof(notifyIconData);
 	notifyIconData.cbSize = sizeof(NOTIFYICONDATA);
-	notifyIconData.hWnd = hwnd;
+	notifyIconData.hWnd = hWnd;
 	// Add the icon, setting the icon, tooltip, and callback message
 	// The icon will be identified with the uID
 	notifyIconData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP;
@@ -754,7 +688,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 
 		/*if (!Shell_NotifyIcon(NIM_MODIFY, &notifyIconData))
 		{
-			AddNotificationIcon(hwnd);
+			AddNotificationIcon(hWnd);
 		}*/
 
 		Sleep(50);
@@ -764,9 +698,9 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 }
 
 // This function is called by DispatchMessage()
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	hwnd = hwnd;
+	//hWnd = hWnd;
 	static UINT s_uTaskbarRestart;
 
 	// Handle the messages
@@ -775,7 +709,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case WM_CREATE:
 		{
 			s_uTaskbarRestart = RegisterWindowMessage(L"TaskbarCreated");
-			AddNotificationIcon(hwnd);
+			AddNotificationIcon(hWnd);
 		}
 		break;
 
@@ -787,13 +721,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			{
 				case IDM_EXIT:
 				{
-					DestroyWindow(hwnd);
+					DestroyWindow(hWnd);
 					break;
 				}
 
 				default:
 				{
-					return DefWindowProc(hwnd, uMsg, wParam, lParam);
+					return DefWindowProc(hWnd, uMsg, wParam, lParam);
 				}
 			}
 		}
@@ -806,10 +740,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			//	// Get current mouse position
 			//	POINT curPoint;
 			//	GetCursorPos(&curPoint);
-			//	SetForegroundWindow(hwnd);
+			//	SetForegroundWindow(hWnd);
 
 			//	// TrackPopupMenu blocks the app until TrackPopupMenu returns
-			//	UINT clicked = TrackPopupMenu(hMenu, TPM_RETURNCMD | TPM_NONOTIFY, curPoint.x, curPoint.y, 0, hwnd, NULL);
+			//	UINT clicked = TrackPopupMenu(hMenu, TPM_RETURNCMD | TPM_NONOTIFY, curPoint.x, curPoint.y, 0, hWnd, NULL);
 
 			//	if (clicked == ID_TRAY_EXIT)
 			//	{
@@ -832,7 +766,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 						if (hSubMenu)
 						{
 							// our window must be foreground before calling TrackPopupMenu or the menu will not disappear when the user clicks away
-							SetForegroundWindow(hwnd);
+							SetForegroundWindow(hWnd);
 
 							// respect menu drop alignment
 							UINT uFlags = TPM_RIGHTBUTTON;
@@ -845,8 +779,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 								uFlags |= TPM_LEFTALIGN;
 							}
 
-							//TrackPopupMenu(hSubMenu, uFlags, pt.x, pt.y, 0, hwnd, NULL);
-							TrackPopupMenuEx(hSubMenu, uFlags, pt.x, pt.y, hwnd, NULL);
+							//TrackPopupMenu(hSubMenu, uFlags, pt.x, pt.y, 0, hWnd, NULL);
+							TrackPopupMenuEx(hSubMenu, uFlags, pt.x, pt.y, hWnd, NULL);
 						}
 
 						DestroyMenu(hMenu);
@@ -872,7 +806,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			/*NOTIFYICONDATA notifyIconData2;
 
 			notifyIconData2.cbSize = sizeof(NOTIFYICONDATA);
-			notifyIconData2.hWnd = hwnd;
+			notifyIconData2.hWnd = hWnd;
 			notifyIconData2.uID = ID_TRAY_APP_ICON;*/
 
 			Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
@@ -892,10 +826,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			if (uMsg == s_uTaskbarRestart)
 			{
-				AddNotificationIcon(hwnd);
+				AddNotificationIcon(hWnd);
 			}
 
-			return DefWindowProc(hwnd, uMsg, wParam, lParam);
+			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 		}
 	}
 

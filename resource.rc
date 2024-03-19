@@ -25,18 +25,18 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE 
+1 TEXTINCLUDE
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE 
+2 TEXTINCLUDE
 BEGIN
     "#include ""winres.h""\r\n"
     "\0"
 END
 
-3 TEXTINCLUDE 
+3 TEXTINCLUDE
 BEGIN
     "\r\n"
     "\0"
@@ -79,7 +79,7 @@ BEGIN
         BEGIN
             VALUE "FileDescription", "Xbox Controller button remapper"
             VALUE "FileVersion", "1.6.0.0"
-            VALUE "LegalCopyright", "Copyright (C) 2015-2022 Adam777 & others"
+            VALUE "LegalCopyright", "Copyright (C) 2015-2024 Adam777 & others"
             VALUE "ProductName", "Xbox Controller button remapper"
             VALUE "ProductVersion", "1.6.0.0"
         END
