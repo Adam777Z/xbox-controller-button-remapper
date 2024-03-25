@@ -54,36 +54,36 @@ handy::io::INIFile ini;
 bool debug = false;
 bool sdl_initialized = false;
 
-void message(const LPCWSTR&& text)
+static void message(const LPCWSTR&& text)
 {
 	MessageBox(NULL, text, szProgramName, MB_OK);
 }
 
-void error(const LPCWSTR&& text)
+static void error(const LPCWSTR&& text)
 {
 	MessageBox(NULL, text, L"Error", MB_OK);
 }
 
-void fatal_error(const LPCWSTR&& text)
+static void fatal_error(const LPCWSTR&& text)
 {
 	MessageBox(NULL, text, L"Fatal Error", MB_OK);
 	exit(1);
 }
 
-std::wstring get_exe_filename()
+static std::wstring get_exe_filename()
 {
 	wchar_t buffer[MAX_PATH];
 	GetModuleFileName(NULL, buffer, MAX_PATH);
 	return std::wstring(buffer);
 }
 
-std::wstring get_exe_path()
+static std::wstring get_exe_path()
 {
 	std::wstring f = get_exe_filename();
 	return f.substr(0, f.find_last_of(L"\\/"));
 }
 
-std::string get_date_time() {
+static std::string get_date_time() {
 	std::time_t t = std::time(nullptr);
 	char date_time[20];
 	std::strftime(date_time, sizeof(date_time), "%Y-%m-%d %H:%M:%S", std::localtime(&t));
@@ -118,18 +118,6 @@ static void load_controller_config(int i)
 	controllers[i].settings.xbox.longpress_duration = ini.getInteger(controller, L"xbox_longpress_duration", 1000);
 	controllers[i].settings.xbox.delay = ini.getInteger(controller, L"xbox_delay", 0);
 	controllers[i].settings.xbox.duration = ini.getInteger(controller, L"xbox_duration", 1);
-}
-
-static int find_controller(SDL_JoystickID controller_id)
-{
-	for (int i = 0; i < controllers.size(); ++i)
-	{
-		if (controller_id == SDL_GetGamepadInstanceID(controllers[i].controller))
-		{
-			return i;
-		}
-	}
-	return -1;
 }
 
 static void add_controllers()
@@ -210,6 +198,18 @@ static void update_controllers()
 	}
 }
 
+static int find_controller(SDL_JoystickID controller_id)
+{
+	for (int i = 0; i < controllers.size(); ++i)
+	{
+		if (controller_id == SDL_GetGamepadInstanceID(controllers[i].controller))
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
 static void initialize_sdl()
 {
 	if (sdl_initialized)
@@ -235,7 +235,7 @@ static void initialize_sdl()
 	}
 }
 
-void key_down(int code)
+static void key_down(int code)
 {
 	INPUT inp{};
 	inp.type = INPUT_KEYBOARD;
@@ -258,7 +258,7 @@ void key_down(int code)
 	SendInput(1, &inp, sizeof(INPUT));
 }
 
-void key_up(int code)
+static void key_up(int code)
 {
 	INPUT inp{};
 	inp.type = INPUT_KEYBOARD;
@@ -281,7 +281,7 @@ void key_up(int code)
 	SendInput(1, &inp, sizeof(INPUT));
 }
 
-void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
+static void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
 {
 	std::this_thread::sleep_for(std::chrono::milliseconds(delay));
 
@@ -302,7 +302,7 @@ void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
 // Maximum number of lines the output console should have
 static const WORD MAX_CONSOLE_LINES = 500;
 
-void RedirectIOToConsole()
+static void RedirectIOToConsole()
 {
 	int hConHandle;
 	long lStdHandle;
@@ -344,7 +344,7 @@ void RedirectIOToConsole()
 	ios::sync_with_stdio();
 }
 
-void loop()
+static void loop()
 {
 	SDL_Event event;
 	int i; // Controller ID
