@@ -1,4 +1,5 @@
-#include <string>
+﻿#include <string>
+#include <format>
 #include <chrono>
 #include <thread>
 #include <iostream>
@@ -15,6 +16,16 @@
 #include "resource.h"
 #include <Xinput.h>
 #pragma comment(lib, "xinput.lib")
+#include "ScreenCapture.h"
+#include <filesystem>
+//#include <Shlwapi.h>
+//#pragma comment(lib, "Shlwapi.lib")
+//#include <PathCch.h>
+//#pragma comment(lib, "PathCch.lib")
+//#include <tchar.h>
+//#include <shlobj.h>
+//#include <algorithm>
+//#include <regex>
 
 // Need commctrl v6 for LoadIconMetric()
 #pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
@@ -52,6 +63,9 @@ struct Controller
 static std::vector<Controller> controllers;
 handy::io::INIFile ini;
 bool debug = false;
+std::wstring screenshots_location = L"";
+int screenshots_key = 0;
+int HotKeyID = 1;
 bool sdl_initialized = false;
 
 static void message(const LPCWSTR&& text)
@@ -90,6 +104,153 @@ static std::string get_date_time() {
 	return date_time;
 }
 
+// Source: https://gist.github.com/utilForever/fdf1540cea0de65cfc0a1a69d8cafb63
+// Replace some pattern in std::wstring with another pattern
+static std::wstring ReplaceWCSWithPattern(__in const std::wstring& message, __in const std::wstring& pattern, __in const std::wstring& replace)
+{
+	std::wstring result = message;
+	std::wstring::size_type pos = 0;
+	std::wstring::size_type offset = 0;
+
+	while ((pos = result.find(pattern, offset)) != std::wstring::npos)
+	{
+		result.replace(result.begin() + pos, result.begin() + pos + pattern.size(), replace);
+		offset = pos + replace.size();
+	}
+
+	return result;
+}
+
+static const std::wstring forbiddenChars = L"\\/:*?\"<>|";
+static bool isForbidden(wchar_t c)
+{
+	return std::wstring::npos != forbiddenChars.find(c);
+}
+
+static void take_screenshot()
+{
+	// Set config
+	tagScreenCaptureFilterConfig config;
+	RtlZeroMemory(&config, sizeof(config));
+	config.MonitorIdx = 0;
+	config.ShowCursor = 0;
+
+	HRESULT hr = S_OK;
+
+	//hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+	hr = CoInitialize(NULL);
+	if (FAILED(hr))
+	{
+		printf("Error[0x%08X]: CoInitialize failed.\n", hr);
+		return;
+	}
+
+	// First initialize
+	CDXGICapture dxgiCapture;
+	hr = dxgiCapture.Initialize();
+	if (FAILED(hr))
+	{
+		printf("Error[0x%08X]: CDXGICapture::Initialize failed.\n", hr);
+		return;
+	}
+
+	// Select monitor by ID
+	const tagDublicatorMonitorInfo* pMonitorInfo = dxgiCapture.FindDublicatorMonitorInfo(config.MonitorIdx);
+	if (nullptr == pMonitorInfo)
+	{
+		printf("Error: Monitor '%d' was not found.", config.MonitorIdx);
+		return;
+	}
+
+	hr = dxgiCapture.SetConfig(config);
+	if (FAILED(hr))
+	{
+		printf("Error[0x%08X]: CDXGICapture::SetConfig failed.\n", hr);
+		return;
+	}
+
+	Sleep(50);
+
+	HWND foreground = GetForegroundWindow();
+	WCHAR window_title[256];
+	GetWindowText(foreground, window_title, _countof(window_title));
+
+	std::wstring window_title2(window_title);
+	//window_title2 = L"Test\\/:*?\"<>|";
+	//window_title2 = ReplaceWCSWithPattern(window_title2, L":", L"꞉"); // Replace forbidden character with allowed character that looks similar
+	window_title2 = ReplaceWCSWithPattern(window_title2, L":", L" -");
+	std::replace_if(window_title2.begin(), window_title2.end(), isForbidden, '_');
+
+	if (window_title2.empty())
+	{
+		window_title2 = L"Screenshot"; // Default title
+	}
+
+	//LPWSTR wnd_title{};
+	//HWND hWnd = GetForegroundWindow(); // Get handle of currently active window
+	//GetWindowText(hWnd, wnd_title, sizeof(wnd_title));
+
+	/*TCHAR current_path[MAX_PATH];
+	GetModuleFileName(NULL, current_path, MAX_PATH);
+	//PathRemoveFileSpec(current_path);
+	PathCchRemoveFileSpec(current_path, MAX_PATH);*/
+
+	/*std::string s1 = std::format("{:%F %T}", std::chrono::system_clock::now());
+	std::string s2 = std::format("{:%F %T %Z}", std::chrono::system_clock::now());
+	std::string s3 = std::format("{:%F %T %Z}", std::chrono::zoned_time{ std::chrono::current_zone(), std::chrono::system_clock::now() });*/
+
+	std::string datetime = std::format("{:%Y-%m-%d %H-%M-%S}", std::chrono::zoned_time{ std::chrono::current_zone(), std::chrono::system_clock::now() });
+	std::wstring datetime2 = std::filesystem::path(datetime).wstring(); // Convert from string to wstring
+	datetime2 = datetime2.substr(0, datetime2.find('.') + 4); // Keep last 3 digits only
+	std::replace(datetime2.begin(), datetime2.end(), '.', '-');
+	//std::wstring file_path = std::wstring(screenshots_location) + L"\\" + window_title2 + L" Screenshot " + datetime2 + L".png";
+	std::wstring folder = std::wstring(screenshots_location) + L"\\" + window_title2;
+	std::wstring file_path = folder + L"\\" + window_title2 + L" " + datetime2 + L".png";
+
+	//if (!std::filesystem::is_directory(folder)) {
+	if (!std::filesystem::exists(folder)) { // Check if folder exists
+		if (!std::filesystem::create_directories(folder)) // Create folder
+		{
+			if (debug)
+			{
+				SDL_Log("%s: Could not create folder for screenshot.\n", get_date_time().c_str());
+			}
+
+			return;
+		}
+	}
+
+	//std::wstring lpFile = std::wstring(current_path) + L"\\dxgi_desktop_capture.exe";
+	//std::wstring lpParameters = L"-o \"" + file_path + L"\"";
+	//ShellExecute(NULL, L"open", lpFile.c_str(), lpParameters.c_str(), NULL, SW_HIDE);
+
+	//char* pszOutputFileName = nullptr;
+	std::wstring pszOutputFileName = file_path;
+
+	//char szFileName[1024];
+	//if (nullptr == pszOutputFileName) {
+	//	hr = SHGetFolderPathA(nullptr, CSIDL_PERSONAL, nullptr, SHGFP_TYPE_CURRENT, szFileName);
+	//	if (FAILED(hr))
+	//	{
+	//		printf("Error[0x%08X]: SHGetFolderPath failed.\n", hr);
+	//		return;
+	//	}
+	//	strcat_s(szFileName, "\\ScreenShot.jpg");
+	//	pszOutputFileName = szFileName;
+	//}
+
+	//hr = dxgiCapture.CaptureToFile((LPCTSTR)CA2WEX<>(pszOutputFileName), NULL, NULL);
+	hr = dxgiCapture.CaptureToFile(pszOutputFileName.c_str(), NULL);
+
+	//dxgiCapture.Terminate();
+
+	if (FAILED(hr))
+	{
+		printf("Error[0x%08X]: CDXGICapture::CaptureToFile failed.\n", hr);
+		return;
+	}
+}
+
 static void add_controller_mapping(char* guid)
 {
 	char mapping_string[1024];
@@ -106,7 +267,7 @@ static void load_controller_config(int i)
 {
 	std::wstring controller = L"controller" + std::to_wstring(i + 1);
 
-	controllers[i].settings.share.key = ini.getIntegers(controller, L"share_key", { 0 });
+	controllers[i].settings.share.key = ini.getIntegers(controller, L"share_key", { 901 });
 	controllers[i].settings.share.hold_mode = ini.getInteger(controller, L"share_hold_mode", 2);
 	controllers[i].settings.share.longpress_key = ini.getIntegers(controller, L"share_longpress_key", { 0 });
 	controllers[i].settings.share.longpress_duration = ini.getInteger(controller, L"share_longpress_duration", 1000);
@@ -237,6 +398,12 @@ static void initialize_sdl()
 
 static void key_down(int code)
 {
+	if (code == 901)
+	{
+		// Take screenshot on button release only
+		return;
+	}
+
 	INPUT inp{};
 	inp.type = INPUT_KEYBOARD;
 	inp.ki.wScan = code; // hardware scan code for key
@@ -260,6 +427,12 @@ static void key_down(int code)
 
 static void key_up(int code)
 {
+	if (code == 901)
+	{
+		take_screenshot();
+		return;
+	}
+
 	INPUT inp{};
 	inp.type = INPUT_KEYBOARD;
 	inp.ki.wScan = code; // hardware scan code for key
@@ -349,6 +522,7 @@ static void loop()
 	SDL_Event event;
 	int i; // Controller ID
 	KeySettings settings;
+	//const Uint8* keyboard = SDL_GetKeyboardState(NULL);
 
 	while (SDL_PollEvent(&event))
 	{
@@ -442,6 +616,22 @@ static void loop()
 				}
 
 				break;
+
+			/*case SDL_EVENT_KEY_DOWN:
+				if (debug)
+				{
+					SDL_Log("%s: Keyboard key pressed.\n", get_date_time().c_str());
+				}
+
+				break;
+
+			case SDL_EVENT_KEY_UP:
+				if (debug)
+				{
+					SDL_Log("%s: Keyboard key released.\n", get_date_time().c_str());
+				}
+
+				break;*/
 
 			case SDL_EVENT_GAMEPAD_REMAPPED:
 				if (debug)
@@ -575,6 +765,15 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		SDL_Log("%s: Debug mode enabled.\n", get_date_time().c_str());
 	}
 
+	screenshots_location = ini.getString(L"screenshots", L"location", L"C:\\Screenshots");
+	screenshots_key = ini.getInteger(L"screenshots", L"key", 0);
+
+	if (screenshots_key != 0)
+	{
+		UINT screenshots_key_vk = MapVirtualKey(screenshots_key, MAPVK_VSC_TO_VK_EX);
+		RegisterHotKey(hWnd, HotKeyID, MOD_NOREPEAT, screenshots_key_vk);
+	}
+
 	while (true)
 	{
 		// Main message loop
@@ -587,6 +786,15 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 			if (msg.message == WM_QUIT)
 			{
 				return 0;
+			}
+			else if (msg.message == WM_HOTKEY && msg.wParam == HotKeyID)
+			{
+				if (debug)
+				{
+					SDL_Log("%s: HotKey pressed.\n", get_date_time().c_str());
+				}
+
+				take_screenshot();
 			}
 		}
 
@@ -705,6 +913,10 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case WM_DESTROY:
 		{
 			// Quit the application
+			if (screenshots_key != 0)
+			{
+				UnregisterHotKey(hWnd, HotKeyID);
+			}
 
 			close_controllers();
 

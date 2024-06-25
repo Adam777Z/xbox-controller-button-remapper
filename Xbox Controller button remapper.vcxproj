@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -110,6 +110,9 @@
       <Command>xcopy /y /d "$(ProjectDir)config.ini" "$(OutDir)"
 xcopy /y /d "$(ProjectDir)SDL\VisualC\x64\Release\SDL3.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
+    <ClCompile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
@@ -119,14 +122,19 @@ xcopy /y /d "$(ProjectDir)SDL\VisualC\x64\Release\SDL3.dll" "$(OutDir)"</Command
       <Command>xcopy /y /d "$(ProjectDir)config.ini" "$(OutDir)"
 xcopy /y /d "$(ProjectDir)SDL\VisualC\x64\Release\SDL3.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
+    <ClCompile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="INI.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ScreenCapture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="INI.hpp" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="ScreenCapture.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />

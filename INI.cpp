@@ -263,7 +263,7 @@ namespace handy
 					continue;
 				}
 
-				// Okay, not int. Try double
+				// Okay, not int. Try double.
 				double doubleValue;
 				if ((CouldBeDouble(value)) && (stream >> doubleValue))
 				{
@@ -275,7 +275,7 @@ namespace handy
 					continue;
 				}
 
-				// A boolean? It might be, if it's four characters
+				// A boolean? It might be, if it's four characters.
 				if (value.length() == 4)
 				{
 					auto boolString = value;
@@ -351,7 +351,7 @@ namespace handy
 			return true;
 		}*/
 
-		int64_t INIFile::getInteger (const std::wstring& section, const std::wstring& item, int64_t defaultVal, bool* wasRead) const
+		int64_t INIFile::getInteger(const std::wstring& section, const std::wstring& item, int64_t defaultVal, bool* wasRead) const
 		{
 			const auto& sectionIter = impl->sections.find(section);
 			if (sectionIter == impl->sections.end())
@@ -441,6 +441,83 @@ namespace handy
 			}
 
 			return key;
+		}
+
+		double INIFile::getDouble(const std::wstring& section, const std::wstring& item, double defaultVal, bool* wasRead) const
+		{
+			const auto& sectionIter = impl->sections.find(section);
+			if (sectionIter == impl->sections.end())
+			{
+				if (wasRead)
+				{
+					*wasRead = false;
+				}
+				return defaultVal;
+			}
+
+			const auto& entries = (*sectionIter).second.entries;
+			const auto& itemIter = entries.find(item);
+			if (itemIter == entries.cend())
+			{
+				if (wasRead)
+				{
+					*wasRead = false;
+				}
+				return defaultVal;
+			}
+
+			if (itemIter->second.type != INIEntry::type_t::intT)
+			{
+				if (wasRead)
+				{
+					*wasRead = false;
+				}
+				return defaultVal;
+			}
+
+			if (wasRead)
+			{
+				*wasRead = true;
+			}
+			return (*itemIter).second.intV;
+		}
+
+		const std::wstring& INIFile::getString(const std::wstring& section, const std::wstring& item, const std::wstring& defaultVal, bool* wasRead) const {
+			const auto& sectionIter = impl->sections.find(section);
+			if (sectionIter == impl->sections.end())
+			{
+				if (wasRead)
+				{
+					*wasRead = false;
+				}
+				return defaultVal;
+			}
+
+			const auto& entries = (*sectionIter).second.entries;
+			const auto& itemIter = entries.find(item);
+			if (itemIter == entries.cend())
+			{
+				if (wasRead)
+				{
+					*wasRead = false;
+				}
+				return defaultVal;
+			}
+
+			if (itemIter->second.type != INIEntry::type_t::stringT)
+			{
+				if (wasRead)
+				{
+					*wasRead = false;
+				}
+				return defaultVal;
+			}
+
+			if (wasRead)
+			{
+				*wasRead = true;
+			}
+			return (*itemIter).second.stringV;
 		}
 
 //
