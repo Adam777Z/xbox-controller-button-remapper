@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.0.0] - 2024-06-25
+- Updated SDL to version 3.0.0
+- Take screenshots using keyboard key and/or controller button
+
 ## [1.6.0.0] - 2022-11-10
 - Fixed notification icon issues
 
@@ -55,6 +59,7 @@
 ## [1.0.0.0] - 2021-07-22
 - First release
 
+[1.7.0.0]: https://github.com/Adam777Z/xbox-controller-button-remapper/releases/tag/1.7.0.0
 [1.6.0.0]: https://github.com/Adam777Z/xbox-controller-button-remapper/releases/tag/1.6.0.0
 [1.5.0.0]: https://github.com/Adam777Z/xbox-controller-button-remapper/releases/tag/1.5.0.0
 [1.4.0.0]: https://github.com/Adam777Z/xbox-controller-button-remapper/releases/tag/1.4.0.0
