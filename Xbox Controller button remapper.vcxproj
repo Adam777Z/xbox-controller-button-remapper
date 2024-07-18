@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1A08601A-0971-4A8F-AE2B-CF6184D01CDD}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <ProjectName>Xbox Controller button remapper</ProjectName>
+    <ProjectName>Xbox Controller Button Remapper</ProjectName>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -135,6 +135,7 @@ xcopy /y /d "$(ProjectDir)SDL\VisualC\x64\Release\SDL3.dll" "$(OutDir)"</Command
     <ClInclude Include="INI.hpp" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="ScreenCapture.h" />
+    <ClInclude Include="ScreenCapture2.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -143,7 +144,7 @@ xcopy /y /d "$(ProjectDir)SDL\VisualC\x64\Release\SDL3.dll" "$(OutDir)"</Command
     <Image Include="XboxOneLogo.ico" />
   </ItemGroup>
   <ItemGroup>
-    <Manifest Include="Xbox Controller button remapper.exe.manifest" />
+    <Manifest Include="Xbox Controller Button Remapper.exe.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

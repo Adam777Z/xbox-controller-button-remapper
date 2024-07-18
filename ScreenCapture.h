@@ -267,10 +267,13 @@ public:
 		_In_ const tagDublicatorMonitorInfo *p2
 		)
 	{
-		if (nullptr == p1) {
+		if (nullptr == p1)
+		{
 			return (nullptr == p2);
 		}
-		if (nullptr == p2) {
+
+		if (nullptr == p2)
+		{
 			return FALSE;
 		}
 
@@ -287,7 +290,8 @@ public:
 	{
 		CHECK_POINTER_EX(pRendererInfo, E_INVALIDARG);
 
-		if (pRendererInfo->SrcFormat != DXGI_FORMAT_B8G8R8A8_UNORM) {
+		if (pRendererInfo->SrcFormat != DXGI_FORMAT_B8G8R8A8_UNORM)
+		{
 			return D2DERR_UNSUPPORTED_PIXEL_FORMAT;
 		}
 
@@ -376,7 +380,8 @@ public:
 			return S_FALSE; // no change
 		}
 
-		if (nullptr != pBufferInfo->Buffer) {
+		if (nullptr != pBufferInfo->Buffer)
+		{
 			delete[] pBufferInfo->Buffer;
 			pBufferInfo->Buffer = nullptr;
 		}
@@ -499,7 +504,8 @@ public:
 		CHECK_POINTER_EX(DesktopDesc, E_INVALIDARG);
 		CHECK_POINTER_EX(pBufferInfo, E_INVALIDARG);
 
-		if (!PtrInfo->Visible) {
+		if (!PtrInfo->Visible)
+		{
 			return S_FALSE;
 		}
 
@@ -521,7 +527,8 @@ public:
 		{
 			// Resize mouseshape buffer (if necessary)
 			hr = DXGICaptureHelper::ResizeFrameBuffer(pBufferInfo, PtrInfo->ShapeBufferSize);
-			if (FAILED(hr)) {
+			if (FAILED(hr))
+			{
 				return hr;
 			}
 
@@ -535,7 +542,8 @@ public:
 		{
 			// Resize mouseshape buffer (if necessary)
 			hr = DXGICaptureHelper::ResizeFrameBuffer(pBufferInfo, pBufferInfo->Bounds.Height * pBufferInfo->Pitch);
-			if (FAILED(hr)) {
+			if (FAILED(hr))
+			{
 				return hr;
 			}
 
@@ -571,7 +579,8 @@ public:
 		{
 			// Resize mouseshape buffer (if necessary)
 			hr = DXGICaptureHelper::ResizeFrameBuffer(pBufferInfo, pBufferInfo->Bounds.Height * pBufferInfo->Pitch);
-			if (FAILED(hr)) {
+			if (FAILED(hr))
+			{
 				return hr;
 			}
 
@@ -719,7 +728,8 @@ public:
 		INT SurfPitch  = FullDesc.Width * 4;
 
 		hr = DXGICaptureHelper::ProcessMouseMask(PtrInfo, DesktopDesc, pTempMouseBuffer);
-		if (FAILED(hr)) {
+		if (FAILED(hr))
+		{
 			return hr;
 		}
 
@@ -768,7 +778,8 @@ public:
 		// QI for IDXGISurface
 		CComPtr<IDXGISurface> ipCopySurface;
 		hr = pSharedSurf->QueryInterface(__uuidof(IDXGISurface), (void **)&ipCopySurface);
-		if (SUCCEEDED(hr)) {
+		if (SUCCEEDED(hr))
+		{
 			// Map pixels
 			DXGI_MAPPED_RECT MappedSurface;
 			hr = ipCopySurface->Map(&MappedSurface, DXGI_MAP_READ | DXGI_MAP_WRITE);
@@ -882,12 +893,14 @@ public:
 		RESET_POINTER_EX(pRetVal, GUID_NULL);
 		CHECK_POINTER_EX(lpcwFileName, E_INVALIDARG);
 
-		if (lstrlenW(lpcwFileName) == 0) {
+		if (lstrlenW(lpcwFileName) == 0)
+		{
 			return E_INVALIDARG;
 		}
 
 		LPCWSTR lpcwExtension = ::PathFindExtensionW(lpcwFileName);
-		if (lstrlenW(lpcwExtension) == 0) {
+		if (lstrlenW(lpcwExtension) == 0)
+		{
 			return MK_E_INVALIDEXTENSION; // ERROR_MRM_INVALID_FILE_TYPE
 		}
 
@@ -935,7 +948,8 @@ public:
 		GUID guidContainerFormat;
 
 		hr = GetContainerFormatByFileName(lpcwFileName, &guidContainerFormat);
-		if (FAILED(hr)) {
+		if (FAILED(hr))
+		{
 			return hr;
 		}
 
@@ -950,11 +964,13 @@ public:
 
 		hr = ipWICImagingFactory->CreateStream(&ipStream);
 
-		if (SUCCEEDED(hr)) {
+		if (SUCCEEDED(hr))
+		{
 			hr = ipStream->InitializeFromFilename(lpcwFileName, GENERIC_WRITE);
 		}
 
-		if (SUCCEEDED(hr)) {
+		if (SUCCEEDED(hr))
+		{
 			hr = ipWICImagingFactory->CreateEncoder(guidContainerFormat, NULL, &ipEncoder);
 		}
 		if (SUCCEEDED(hr))

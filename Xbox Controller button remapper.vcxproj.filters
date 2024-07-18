@@ -35,6 +35,9 @@
     <ClInclude Include="ScreenCapture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ScreenCapture2.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">
@@ -47,7 +50,7 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <Manifest Include="Xbox Controller button remapper.exe.manifest">
+    <Manifest Include="Xbox Controller Button Remapper.exe.manifest">
       <Filter>Resource Files</Filter>
     </Manifest>
   </ItemGroup>

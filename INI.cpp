@@ -436,7 +436,8 @@ namespace handy
 			std::vector<std::wstring> v = explode(L",", value);
 			std::vector<int> key;
 
-			for (std::size_t i = 0; i < v.size(); ++i) {
+			for (std::size_t i = 0; i < v.size(); ++i)
+			{
 				key.push_back(std::stoi(v[i]));
 			}
 
