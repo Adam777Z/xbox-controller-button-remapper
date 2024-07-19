@@ -1,11 +1,11 @@
 # Changelog
 
 ## [1.8.0.0] - 2024-07-18
-- Record video using keyboard key and/or controller button
+- New: Record video using keyboard key and/or controller button
 
 ## [1.7.0.0] - 2024-06-25
 - Updated SDL to version 3.0.0
-- Take screenshot using keyboard key and/or controller button
+- New: Take screenshot using keyboard key and/or controller button
 
 ## [1.6.0.0] - 2022-11-10
 - Fixed notification icon issues
