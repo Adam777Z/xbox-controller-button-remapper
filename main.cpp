@@ -68,6 +68,10 @@ static std::vector<Controller> controllers;
 handy::io::INIFile ini;
 bool debug = false;
 
+std::wstring file_location = L"C:\\Windows\\explorer.exe";
+int file_key = 0;
+int OpenFileHotKeyID = 3;
+
 std::wstring folder = L"";
 std::wstring file_path = L"";
 
@@ -871,9 +875,9 @@ static void initialize_sdl()
 
 static void key_down(int code)
 {
-	if (code == 901 || code == 902)
+	if (code == 901 || code == 902 || code == 903)
 	{
-		// Take screenshot / record video on button release only
+		// Take screenshot / record video / open file on button release only
 		return;
 	}
 
@@ -908,6 +912,12 @@ static void key_up(int code)
 	else if (code == 902)
 	{
 		capture_video();
+		return;
+	}
+	else if (code == 903)
+	{
+		//ShellExecute(NULL, L"open", file_location.c_str(), NULL, NULL, SW_HIDE);
+		ShellExecute(NULL, L"open", file_location.c_str(), NULL, NULL, SW_SHOWNORMAL);
 		return;
 	}
 
@@ -1246,6 +1256,16 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		SDL_Log("%s: Debug mode enabled.\n", get_date_time().c_str());
 	}
 
+	file_location = ini.getString(L"settings", L"file_location", L"C:\\Windows\\explorer.exe");
+
+	file_key = ini.getInteger(L"settings", L"file_key", 0);
+
+	if (file_key != 0)
+	{
+		UINT file_key_vk = MapVirtualKey(file_key, MAPVK_VSC_TO_VK_EX);
+		RegisterHotKey(hWnd, OpenFileHotKeyID, MOD_NOREPEAT, file_key_vk);
+	}
+
 	captures_location = ini.getString(L"screen_capture", L"location", L"C:\\Screenshots");
 
 	screenshot_key = ini.getInteger(L"screen_capture", L"screenshot_key", 0);
@@ -1311,6 +1331,16 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 					}
 
 					capture_video();
+				}
+				else if (msg.wParam == OpenFileHotKeyID)
+				{
+					if (debug)
+					{
+						SDL_Log("%s: Open file HotKey pressed.\n", get_date_time().c_str());
+					}
+
+					//ShellExecute(NULL, L"open", file_location.c_str(), NULL, NULL, SW_HIDE);
+					ShellExecute(NULL, L"open", file_location.c_str(), NULL, NULL, SW_SHOWNORMAL);
 				}
 			}
 		}
@@ -1432,6 +1462,11 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			// Quit the application
 
 			CoUninitialize();
+
+			if (file_key != 0)
+			{
+				UnregisterHotKey(hWnd, OpenFileHotKeyID);
+			}
 
 			if (screenshot_key != 0)
 			{

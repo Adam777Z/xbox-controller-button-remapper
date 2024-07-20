@@ -5,6 +5,8 @@ A small program that runs in the background and sends the configured key(s) when
 Supports capturing screenshots and videos directly without any other program involved so the button prompts do not change in the game after pressing the Xbox/Share button on the controller to take the screenshot/video.\
 Can also capture screenshots and videos using keys on the keyboard.
 
+Can also open any file using keyboard key and/or controller button so the button prompts do not change in the game.
+
 Configure the program using the config.ini file.
 
 Works with the Xbox Series X|S Controller that has the Share button.
