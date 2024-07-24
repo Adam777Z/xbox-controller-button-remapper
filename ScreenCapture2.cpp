@@ -272,9 +272,6 @@ class MIXBUFFER
 				{
 					memset(m, 0, (size_t)(samples * sizeof(T)));
 				}
-				/*else
-				{
-				}*/
 			}
 			count++;
 		}
@@ -1894,7 +1891,6 @@ inline int DesktopCapture(DESKTOPCAPTUREPARAMS& dp)
 		};
 	}
 
-	// ----------------------
 	std::vector<std::shared_ptr<AUDIOIN>> ains;
 
 	class AINRELEASE

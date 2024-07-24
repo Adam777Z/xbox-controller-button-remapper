@@ -1,4 +1,4 @@
-﻿#include <string>
+#include <string>
 #include <format>
 #include <chrono>
 #include <thread>
@@ -227,17 +227,9 @@ static void set_file_path(std::wstring extension)
 
 static HRESULT save_png(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UINT pHeight)
 {
-	//std::string datetime = std::format("{:%Y-%m-%d %H-%M-%S}", std::chrono::zoned_time{ std::chrono::current_zone(), std::chrono::system_clock::now() });
-	//std::wstring datetime2 = std::filesystem::path(datetime).wstring(); // Convert from string to wstring
-	//datetime2 = datetime2.substr(0, datetime2.find('.') + 4); // Keep last 3 digits only
-	//std::replace(datetime2.begin(), datetime2.end(), '.', '-');
-	//std::wstring file_path = std::wstring(captures_location) + L"\\" + L"Screenshot " + datetime2 + L".png";
-
-	//std::wstring file_path = get_screenshot_file_path();
 	LPCWSTR Path = file_path.c_str();
 	HRESULT hr;
 	int multi = 4;
-	//CComPtr<ID2D1RenderTarget> pRT;
 	
 	//WICPixelFormatGUID format = GUID_WICPixelFormat32bppRGB;
 	//WICPixelFormatGUID format = GUID_WICPixelFormat32bppRGBA; // DXGI_FORMAT_R8G8B8A8_UNORM
@@ -245,7 +237,6 @@ static HRESULT save_png(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UI
 	//WICPixelFormatGUID format = GUID_WICPixelFormat32bppBGR; // DXGI_FORMAT_B8G8R8X8_UNORM
 	WICPixelFormatGUID format = GUID_WICPixelFormat32bppBGRA; // DXGI_FORMAT_B8G8R8A8_UNORM
 	
-	//CComPtr<IWICImagingFactory> m_pWICFactory;
 	CComPtr<IWICImagingFactory2> m_pWICFactory;
 	//CComPtr<IWICBitmapSource> pSource2(pSource);
 	//CComPtr<IWICBitmapSource> pSource2;
@@ -253,13 +244,6 @@ static HRESULT save_png(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UI
 	CComPtr<IWICStream> pStream;
 	CComPtr<IWICBitmapEncoder> pEncoder;
 	CComPtr<IWICBitmapFrameEncode> pFrame;
-	//CComPtr<ID2D1Factory>* m_pDirect2dFactory;
-	//CComPtr<IWICBitmapFlipRotator> pFlipRotator;
-	//CComPtr<IWICBitmapSourceTransform> pSourceTransform;
-	//CComPtr<IWICFormatConverter> pIFormatConverter;
-
-	//hr = pSource2->GetPixelFormat(&format);
-	//hr = pSource2->GetSize(&pWidth, &pHeight);
 
 	/*hr = CoCreateInstance(
 		CLSID_WICImagingFactory,
@@ -268,40 +252,13 @@ static HRESULT save_png(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UI
 		IID_IWICImagingFactory,
 		reinterpret_cast<void**>(&m_pWICFactory)
 	);*/
-	//hr = m_pWICFactory.CoCreateInstance(CLSID_WICImagingFactory);
 	hr = m_pWICFactory.CoCreateInstance(CLSID_WICImagingFactory2);
 	//hr = CoCreateInstance(CLSID_WICImagingFactory2, 0, CLSCTX_INPROC_SERVER, __uuidof(IWICImagingFactory2), (void**)&m_pWICFactory);
 
 	if (SUCCEEDED(hr))
 	{
-		//hr = m_pWICFactory->CreateBitmap(pSource->GetSize().width, pSource->GetSize().height, format, WICBitmapCacheOnLoad, &pB);
 		hr = m_pWICFactory->CreateBitmapFromMemory(pWidth, pHeight, format, pWidth * multi, pWidth * pHeight * multi, (BYTE*)pSource, &pSource2);
 	}
-
-	/*if (SUCCEEDED(hr))
-	{
-		hr = pSource2->GetSize(&pWidth, &pHeight);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pSource2->GetPixelFormat(&format);
-	}*/
-
-	/*if (SUCCEEDED(hr))
-	{
-		D2D1_RENDER_TARGET_PROPERTIES RTProps = RenderTargetProperties();
-		RTProps.pixelFormat = PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED);
-		hr = m_pDirect2dFactory->CreateWicBitmapRenderTarget(pB, &RTProps, &pRT);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		pRT->BeginDraw();
-		pRT->Clear();
-		pRT->DrawBitmap(pBit);
-		hr = pRT->EndDraw();
-	}*/
 
 	if (SUCCEEDED(hr))
 	{
@@ -318,11 +275,6 @@ static HRESULT save_png(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UI
 		hr = m_pWICFactory->CreateEncoder(GUID_ContainerFormatPng, NULL, &pEncoder);
 	}
 
-	/*if (SUCCEEDED(hr))
-	{
-		hr = m_pWICFactory->CreateBitmapFlipRotator(&pFlipRotator);
-	}*/
-
 	if (SUCCEEDED(hr))
 	{
 		hr = pEncoder->Initialize(pStream, WICBitmapEncoderNoCache);
@@ -338,11 +290,6 @@ static HRESULT save_png(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UI
 		hr = pFrame->Initialize(NULL);
 	}
 
-	/*if (SUCCEEDED(hr))
-	{
-		hr = pSource2->GetSize(&pWidth, &pHeight);
-	}*/
-
 	if (SUCCEEDED(hr))
 	{
 		hr = pFrame->SetSize(pWidth, pHeight);
@@ -353,20 +300,8 @@ static HRESULT save_png(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UI
 		hr = pFrame->SetPixelFormat(&format);
 	}
 
-	/*if (SUCCEEDED(hr))
-	{
-		hr = pFlipRotator->Initialize((IWICBitmapSource*)pSource2, WICBitmapTransformFlipVertical);
-	}*/
-
-	/*if (SUCCEEDED(hr))
-	{
-		hr = pIFormatConverter->Initialize((IWICBitmapSource*)pFlipRotator, GUID_WICPixelFormat24bppBGR, WICBitmapDitherTypeNone, NULL, 0.f, WICBitmapPaletteTypeCustom);
-	}*/
-
 	if (SUCCEEDED(hr))
 	{
-		//hr = pFrame->WriteSource((IWICBitmapSource*)pFlipRotator, NULL);
-		//hr = pFrame->WritePixels(pHeight, pWidth * multi, pWidth * pHeight * multi, (BYTE*)pSource);
 		hr = pFrame->WritePixels(pHeight, pWidth * multi, (UINT)pSourceSize, (BYTE*)pSource);
 	}
 
@@ -387,11 +322,8 @@ static HRESULT save_jxr(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UI
 {
 	LPCWSTR Path = file_path.c_str();
 	HRESULT hr;
-	//int multi = 4;
 	int multi = 8; // 64-bit HDR
-	//CComPtr<ID2D1RenderTarget> pRT;
 	WICPixelFormatGUID format = GUID_WICPixelFormat64bppRGBAHalf; // DXGI_FORMAT_R16G16B16A16_FLOAT
-	//CComPtr<IWICImagingFactory> m_pWICFactory;
 	CComPtr<IWICImagingFactory2> m_pWICFactory;
 	//CComPtr<IWICBitmapSource> pSource2(pSource);
 	//CComPtr<IWICBitmapSource> pSource2;
@@ -405,7 +337,6 @@ static HRESULT save_jxr(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UI
 
 	if (SUCCEEDED(hr))
 	{
-		//hr = m_pWICFactory->CreateBitmap(pSource->GetSize().width, pSource->GetSize().height, format, WICBitmapCacheOnLoad, &pB);
 		hr = m_pWICFactory->CreateBitmapFromMemory(pWidth, pHeight, format, pWidth * multi, pWidth * pHeight * multi, (BYTE*)pSource, &pSource2);
 	}
 
@@ -477,15 +408,12 @@ static void initialize_screen_capture()
 		dp_screenshot.ad = (IDXGIAdapter1*)adapter;
 		dp_screenshot.nOutput = monitor;
 		dp_screenshot.f = L"";
-		//dp_screenshot.f = L"capture.png";
 
 		// To callback frame
 		dp_screenshot.Framer = [](const BYTE* b, size_t sz, UINT wi, UINT he, void* cb)
 			{
 				if (b && sz)
 				{
-					//std::cout << "Captured.\r\n";
-
 					/*if (IsHDR)
 					{
 						set_file_path(L".jxr");
@@ -533,8 +461,6 @@ static void initialize_screen_capture()
 		dp_video.vbrm = vbrm;
 		dp_video.vbrq = vbrq;
 		dp_video.NumThreads = threads;
-		//dp_video.EndMS = 1000; // Test
-		//dp_video.EndMS = 0; // Default
 
 		if (audio_format == L"FLAC")
 		{
@@ -640,15 +566,6 @@ static void take_screenshot()
 		initialize_screen_capture();
 	}
 
-	/*if (IsHDR)
-	{
-		set_file_path(L".jxr");
-	}
-	else
-	{
-		set_file_path(L".png");
-	}*/
-
 	DesktopCapture(dp_screenshot);
 }
 
@@ -668,48 +585,9 @@ static void record_video()
 		set_file_path(L".mp4");
 
 		dp_video.f = file_path;
-		//dp_video.f = L"capture.mp4";
-		//dp_video.f = L"capture.wmv";
 		dp_video.MustEnd = false;
 
-		// To Stream
-		/*
-		dp_video.f = L"";
-		dp_video.PrepareAttributes = [](IMFAttributes* attrs)
-		{
-			attrs->SetGUID(MF_TRANSCODE_CONTAINERTYPE, MFTranscodeContainerType_ASF);
-			//attrs->SetGUID(MF_TRANSCODE_CONTAINERTYPE, MFTranscodeContainerType_MPEG4);
-		};
-		dp_video.Streamer = [](const BYTE* b, size_t sz, void* cb)
-		{
-			file_path = file_path + L".asf";
-			FILE* fp = 0;
-			//_wfopen_s(&fp, L"capture.asf", L"a+b");
-			_wfopen_s(&fp, file_path.c_str(), L"a+b");
-			fwrite(b, 1, sz, fp);
-			fclose(fp);
-			return S_OK;
-			//Sleep(1000);
-			//return S_FALSE;
-		};
-		*/
-
-		// To Video
-		//DesktopCapture(dp_video);
-		
-		//ShellExecute(0, L"open", L"capture.mp4", 0, 0, SW_SHOWNORMAL);
-
-		// Run DesktopCapture in a separate thread
-		//auto r = std::async(DesktopCapture, &dp_video);
-		//auto r = std::async(std::launch::async, [&] { DesktopCapture(dp_video); });
-		//auto r = std::async(std::launch::async, [&dp_video] { DesktopCapture(dp_video); });
-		//auto result = r.get();
-		
-		//worker = std::thread(DesktopCapture(dp_video));
-		//worker = std::thread(DesktopCapture, dp_video);
-		//std::thread th(DesktopCapture, dp_video);
-		//worker = std::thread([&dp_video] { DesktopCapture(dp_video); });
-		worker = std::thread([] { DesktopCapture(dp_video); });
+		worker = std::thread([] { DesktopCapture(dp_video); }); // Run DesktopCapture in a separate thread
 		worker.detach(); // Detach the thread
 
 		recording_video = true;
@@ -961,7 +839,6 @@ static void key_up(int code)
 	}
 	else if (code == 903)
 	{
-		//ShellExecute(NULL, L"open", file_location.c_str(), NULL, NULL, SW_HIDE);
 		ShellExecute(NULL, L"open", file_location.c_str(), NULL, NULL, SW_SHOWNORMAL);
 		return;
 	}
@@ -1394,7 +1271,6 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 						SDL_Log("%s: Open file HotKey pressed.\n", get_date_time().c_str());
 					}
 
-					//ShellExecute(NULL, L"open", file_location.c_str(), NULL, NULL, SW_HIDE);
 					ShellExecute(NULL, L"open", file_location.c_str(), NULL, NULL, SW_SHOWNORMAL);
 				}
 			}
@@ -1421,7 +1297,6 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 // This function is called by DispatchMessage()
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	//hWnd = hWnd;
 	static UINT s_uTaskbarRestart;
 
 	// Handle the messages
