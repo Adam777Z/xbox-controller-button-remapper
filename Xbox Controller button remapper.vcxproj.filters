@@ -35,7 +35,7 @@
     <ClInclude Include="ScreenCapture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ScreenCapture2.hpp">
+    <ClInclude Include="ScreenCapture2.cpp">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

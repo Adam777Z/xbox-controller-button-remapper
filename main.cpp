@@ -17,7 +17,7 @@
 #include <Xinput.h>
 #pragma comment(lib, "xinput.lib")
 //#include "ScreenCapture.h"
-#include "ScreenCapture2.hpp"
+#include "ScreenCapture2.cpp"
 #include <filesystem>
 //#include <Shlwapi.h>
 //#pragma comment(lib, "Shlwapi.lib")
@@ -151,7 +151,7 @@ static std::string get_date_time()
 
 // Source: https://gist.github.com/utilForever/fdf1540cea0de65cfc0a1a69d8cafb63
 // Replace some pattern in std::wstring with another pattern
-static std::wstring replace_wide_character_string_with_pattern(__in const std::wstring& message, __in const std::wstring& pattern, __in const std::wstring& replace)
+static std::wstring replace_wstring_with_pattern(__in const std::wstring& message, __in const std::wstring& pattern, __in const std::wstring& replace)
 {
 	std::wstring result = message;
 	std::wstring::size_type pos = 0;
@@ -180,8 +180,8 @@ static void set_file_path(std::wstring extension)
 
 	std::wstring window_title2(window_title);
 	//window_title2 = L"Test\\/:*?\"<>|";
-	//window_title2 = replace_wide_character_string_with_pattern(window_title2, L":", L"꞉"); // Replace forbidden character with allowed character that looks similar
-	window_title2 = replace_wide_character_string_with_pattern(window_title2, L":", L" -");
+	//window_title2 = replace_wstring_with_pattern(window_title2, L":", L"꞉"); // Replace forbidden character with allowed character that looks similar
+	window_title2 = replace_wstring_with_pattern(window_title2, L":", L" -");
 	std::replace_if(window_title2.begin(), window_title2.end(), is_forbidden, '_');
 
 	if (window_title2.empty())

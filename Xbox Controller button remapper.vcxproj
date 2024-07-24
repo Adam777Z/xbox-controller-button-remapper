@@ -135,7 +135,7 @@ xcopy /y /d "$(ProjectDir)SDL\VisualC\x64\Release\SDL3.dll" "$(OutDir)"</Command
     <ClInclude Include="INI.hpp" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="ScreenCapture.h" />
-    <ClInclude Include="ScreenCapture2.hpp" />
+    <ClInclude Include="ScreenCapture2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
