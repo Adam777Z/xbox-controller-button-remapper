@@ -30,6 +30,7 @@
 #include <atomic>
 #include <thread>
 #include <future>
+#include <endpointvolume.h>
 
 // Need commctrl v6 for LoadIconMetric()
 #pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
@@ -101,10 +102,15 @@ DESKTOPCAPTUREPARAMS dp_video;
 
 bool sdl_initialized = false;
 bool screen_capture_initialized = false;
+bool input_device_initialized = false;
 
 std::mutex mtx;
 std::thread worker;
 std::atomic<bool> recording_video{ false }; // This needs to be atomic to avoid data races
+
+IMMDeviceEnumerator* pEnumerator = NULL;
+IMMDevice* pDevice = NULL;
+static IAudioEndpointVolume* g_pEndptVol = NULL;
 
 static void message(const LPCWSTR&& text)
 {
@@ -726,6 +732,40 @@ static void capture_video()
 	}
 }
 
+static void initialize_default_input_device()
+{
+	CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator), (void**)&pEnumerator);
+	pEnumerator->GetDefaultAudioEndpoint(eCapture, eConsole, &pDevice);
+	//pDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, NULL, (void**)&g_pEndptVol);
+	pDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_INPROC_SERVER, NULL, (void**)&g_pEndptVol);
+	//pDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_INPROC_SERVER, NULL, reinterpret_cast<void**>(&g_pEndptVol));
+
+	input_device_initialized = true;
+}
+
+static void toggle_mute()
+{
+	if (!input_device_initialized)
+	{
+		initialize_default_input_device();
+	}
+
+	BOOL bMute;
+
+	g_pEndptVol->GetMute(&bMute); // Get current mute state
+	g_pEndptVol->SetMute(!bMute, NULL); // Toggle mute
+}
+
+static void set_mute(bool mute)
+{
+	if (!input_device_initialized)
+	{
+		initialize_default_input_device();
+	}
+
+	g_pEndptVol->SetMute(mute, NULL);
+}
+
 static void add_controller_mapping(char* guid)
 {
 	char mapping_string[1024];
@@ -875,9 +915,14 @@ static void initialize_sdl()
 
 static void key_down(int code)
 {
-	if (code == 901 || code == 902 || code == 903)
+	if (code == 901 || code == 902 || code == 903 || code == 904)
 	{
-		// Take screenshot / record video / open file on button release only
+		// Take screenshot / record video / open file / toggle mute/unmute on button release only
+		return;
+	}
+	else if (code == 905)
+	{
+		set_mute(false);
 		return;
 	}
 
@@ -918,6 +963,16 @@ static void key_up(int code)
 	{
 		//ShellExecute(NULL, L"open", file_location.c_str(), NULL, NULL, SW_HIDE);
 		ShellExecute(NULL, L"open", file_location.c_str(), NULL, NULL, SW_SHOWNORMAL);
+		return;
+	}
+	else if (code == 904)
+	{
+		toggle_mute();
+		return;
+	}
+	else if (code == 905)
+	{
+		set_mute(true);
 		return;
 	}
 
@@ -1476,6 +1531,15 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			if (video_key != 0)
 			{
 				UnregisterHotKey(hWnd, VideoHotKeyID);
+			}
+
+			if (input_device_initialized)
+			{
+				pEnumerator->Release();
+				pDevice->Release();
+				g_pEndptVol->Release();
+
+				input_device_initialized = false;
 			}
 
 			close_controllers();

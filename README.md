@@ -21,6 +21,19 @@ Remapping the Share button only works when the **Windows Game Recording and Broa
 [Enable or Disable Windows Game Recording and Broadcasting in Windows 10](https://www.tenforums.com/tutorials/51180-enable-disable-windows-game-recording-broadcasting-windows-10-a.html)\
 [Enable or Disable Windows Game Recording and Broadcasting in Windows 11](https://www.elevenforum.com/t/enable-or-disable-game-recording-for-captures-in-windows-11.17611/)
 
+## Features
+- Remap Xbox button and/or Share button on the controller to keyboard key(s) and/or function(s)
+- Xbox/Share button long press (hold and release) remapping
+- Multiple controllers are supported
+- Multiple keyboard keys are supported
+- Wait before sending key(s) (delay)
+- Wait before releasing key(s) (duration)
+- Capture screenshots using keyboard key and/or controller button
+- Capture videos using keyboard key and/or controller button
+- Open file using keyboard key and/or controller button
+- Mute/unmute default recording/input device (microphone) (toggle and push-to-talk) using controller button
+- Configure the program using the config.ini file
+
 ## Requirements
 - Xbox Controller
 - Windows 10/11 64-bit
