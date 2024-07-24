@@ -1,4 +1,4 @@
-#include <string>
+﻿#include <string>
 #include <format>
 #include <chrono>
 #include <thread>
@@ -18,6 +18,7 @@
 #pragma comment(lib, "xinput.lib")
 //#include "ScreenCapture.h"
 #include "ScreenCapture2.cpp"
+#include <codecvt>
 #include <filesystem>
 //#include <Shlwapi.h>
 //#pragma comment(lib, "Shlwapi.lib")
@@ -172,6 +173,15 @@ static bool is_forbidden(wchar_t c)
 	return std::wstring::npos != forbidden_chars.find(c);
 }
 
+// Source: https://gist.github.com/danzek/d6a0e4a48a5439e7f808ed1497f6268e
+static std::wstring string_to_wstring(const std::string& str)
+{
+	using convert_typeX = std::codecvt_utf8<wchar_t>;
+	std::wstring_convert<convert_typeX, wchar_t> converterX;
+
+	return converterX.from_bytes(str);
+}
+
 static void set_file_path(std::wstring extension)
 {
 	HWND foreground = GetForegroundWindow();
@@ -203,14 +213,15 @@ static void set_file_path(std::wstring extension)
 	std::string s3 = std::format("{:%F %T %Z}", std::chrono::zoned_time{ std::chrono::current_zone(), std::chrono::system_clock::now() });*/
 
 	std::string datetime = std::format("{:%Y-%m-%d %H-%M-%S}", std::chrono::zoned_time{ std::chrono::current_zone(), std::chrono::system_clock::now() });
-	std::wstring datetime2 = std::filesystem::path(datetime).wstring(); // Convert from string to wstring
+	//std::wstring datetime2 = std::filesystem::path(datetime).wstring(); // Convert from string to wstring
+	std::wstring datetime2 = string_to_wstring(datetime); // Convert from string to wstring
 	datetime2 = datetime2.substr(0, datetime2.find('.') + 4); // Keep last 3 digits only
 	std::replace(datetime2.begin(), datetime2.end(), '.', '-');
 	//std::wstring file_path = std::wstring(captures_location) + L"\\" + window_title2 + L" Screenshot " + datetime2 + extension;
 	folder = std::wstring(captures_location) + L"\\" + window_title2;
 
-	if (!std::filesystem::exists(folder))
-	{ // Check if folder exists
+	if (!std::filesystem::exists(folder)) // Check if folder exists
+	{
 		if (!std::filesystem::create_directories(folder)) // Create folder
 		{
 			if (debug)
@@ -246,10 +257,10 @@ static HRESULT save_png(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UI
 	CComPtr<IWICBitmapFrameEncode> pFrame;
 
 	/*hr = CoCreateInstance(
-		CLSID_WICImagingFactory,
+		CLSID_WICImagingFactory2,
 		NULL,
 		CLSCTX_INPROC_SERVER,
-		IID_IWICImagingFactory,
+		IID_IWICImagingFactory2,
 		reinterpret_cast<void**>(&m_pWICFactory)
 	);*/
 	hr = m_pWICFactory.CoCreateInstance(CLSID_WICImagingFactory2);
@@ -405,7 +416,7 @@ static void initialize_screen_capture()
 		dp_screenshot.HasVideo = 1;
 		dp_screenshot.HasAudio = 0;
 		dp_screenshot.Cursor = capture_cursor;
-		dp_screenshot.ad = (IDXGIAdapter1*)adapter;
+		dp_screenshot.ad = reinterpret_cast<IDXGIAdapter1*>(static_cast<uintptr_t>(adapter));
 		dp_screenshot.nOutput = monitor;
 		dp_screenshot.f = L"";
 
@@ -439,7 +450,7 @@ static void initialize_screen_capture()
 		dp_video.HasVideo = 1;
 		dp_video.HasAudio = 1;
 		dp_video.Cursor = capture_cursor;
-		dp_video.ad = (IDXGIAdapter1*)adapter;
+		dp_video.ad = reinterpret_cast<IDXGIAdapter1*>(static_cast<uintptr_t>(adapter));
 		dp_video.nOutput = monitor;
 
 		if (video_format == L"AV1")
@@ -612,11 +623,11 @@ static void record_video()
 
 static void initialize_default_input_device()
 {
-	CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator), (void**)&pEnumerator);
-	pEnumerator->GetDefaultAudioEndpoint(eCapture, eConsole, &pDevice);
-	//pDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, NULL, (void**)&g_pEndptVol);
-	pDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_INPROC_SERVER, NULL, (void**)&g_pEndptVol);
-	//pDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_INPROC_SERVER, NULL, reinterpret_cast<void**>(&g_pEndptVol));
+	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator), (void**)&pEnumerator);
+	hr = pEnumerator->GetDefaultAudioEndpoint(eCapture, eConsole, &pDevice);
+	//hr = pDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, NULL, (void**)&g_pEndptVol);
+	hr = pDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_INPROC_SERVER, NULL, (void**)&g_pEndptVol);
+	//hr = pDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_INPROC_SERVER, NULL, reinterpret_cast<void**>(&g_pEndptVol));
 
 	input_device_initialized = true;
 }
