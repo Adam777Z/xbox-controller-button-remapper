@@ -151,7 +151,7 @@ static std::string get_date_time()
 
 // Source: https://gist.github.com/utilForever/fdf1540cea0de65cfc0a1a69d8cafb63
 // Replace some pattern in std::wstring with another pattern
-static std::wstring ReplaceWCSWithPattern(__in const std::wstring& message, __in const std::wstring& pattern, __in const std::wstring& replace)
+static std::wstring replace_wide_character_string_with_pattern(__in const std::wstring& message, __in const std::wstring& pattern, __in const std::wstring& replace)
 {
 	std::wstring result = message;
 	std::wstring::size_type pos = 0;
@@ -166,10 +166,10 @@ static std::wstring ReplaceWCSWithPattern(__in const std::wstring& message, __in
 	return result;
 }
 
-static const std::wstring forbiddenChars = L"\\/:*?\"<>|";
-static bool isForbidden(wchar_t c)
+static const std::wstring forbidden_chars = L"\\/:*?\"<>|";
+static bool is_forbidden(wchar_t c)
 {
-	return std::wstring::npos != forbiddenChars.find(c);
+	return std::wstring::npos != forbidden_chars.find(c);
 }
 
 static void set_file_path(std::wstring extension)
@@ -180,9 +180,9 @@ static void set_file_path(std::wstring extension)
 
 	std::wstring window_title2(window_title);
 	//window_title2 = L"Test\\/:*?\"<>|";
-	//window_title2 = ReplaceWCSWithPattern(window_title2, L":", L"꞉"); // Replace forbidden character with allowed character that looks similar
-	window_title2 = ReplaceWCSWithPattern(window_title2, L":", L" -");
-	std::replace_if(window_title2.begin(), window_title2.end(), isForbidden, '_');
+	//window_title2 = replace_wide_character_string_with_pattern(window_title2, L":", L"꞉"); // Replace forbidden character with allowed character that looks similar
+	window_title2 = replace_wide_character_string_with_pattern(window_title2, L":", L" -");
+	std::replace_if(window_title2.begin(), window_title2.end(), is_forbidden, '_');
 
 	if (window_title2.empty())
 	{
@@ -225,7 +225,7 @@ static void set_file_path(std::wstring extension)
 	file_path = folder + L"\\" + window_title2 + L" " + datetime2 + extension;
 }
 
-static HRESULT SavePng(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UINT pHeight)
+static HRESULT save_png(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UINT pHeight)
 {
 	//std::string datetime = std::format("{:%Y-%m-%d %H-%M-%S}", std::chrono::zoned_time{ std::chrono::current_zone(), std::chrono::system_clock::now() });
 	//std::wstring datetime2 = std::filesystem::path(datetime).wstring(); // Convert from string to wstring
@@ -383,7 +383,7 @@ static HRESULT SavePng(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UIN
 	return hr;
 }
 
-static HRESULT SaveJxr(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UINT pHeight)
+static HRESULT save_jxr(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UINT pHeight)
 {
 	LPCWSTR Path = file_path.c_str();
 	HRESULT hr;
@@ -467,7 +467,7 @@ static HRESULT SaveJxr(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UIN
 	return hr;
 }
 
-static void init_screen_capture()
+static void initialize_screen_capture()
 {
 	if (!screen_capture_initialized)
 	{
@@ -489,12 +489,12 @@ static void init_screen_capture()
 					/*if (IsHDR)
 					{
 						set_file_path(L".jxr");
-						SaveJxr(b, sz, wi, he);
+						save_jxr(b, sz, wi, he);
 					}
 					else
 					{*/
 						set_file_path(L".png");
-						SavePng(b, sz, wi, he);
+						save_png(b, sz, wi, he);
 					//}
 
 					if (debug)
@@ -637,7 +637,7 @@ static void take_screenshot()
 
 	if (!screen_capture_initialized)
 	{
-		init_screen_capture();
+		initialize_screen_capture();
 	}
 
 	/*if (IsHDR)
@@ -652,11 +652,11 @@ static void take_screenshot()
 	DesktopCapture(dp_screenshot);
 }
 
-static void capture_video()
+static void record_video()
 {
 	if (!screen_capture_initialized)
 	{
-		init_screen_capture();
+		initialize_screen_capture();
 	}
 
 	std::lock_guard<std::mutex> guard(mtx);
@@ -956,7 +956,7 @@ static void key_up(int code)
 	}
 	else if (code == 902)
 	{
-		capture_video();
+		record_video();
 		return;
 	}
 	else if (code == 903)
@@ -1014,7 +1014,7 @@ static void key_tap(std::vector<int> code, int64_t delay, int64_t duration)
 	}
 }
 
-// Console I/O in a Win32 GUI App
+// Console I/O in a Windows GUI App
 // Maximum number of lines the output console should have
 static const WORD MAX_CONSOLE_LINES = 500;
 
@@ -1385,7 +1385,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 						SDL_Log("%s: Video HotKey pressed.\n", get_date_time().c_str());
 					}
 
-					capture_video();
+					record_video();
 				}
 				else if (msg.wParam == OpenFileHotKeyID)
 				{
