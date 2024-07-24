@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.9.1.0] - 2024-07-24
+- Added: Mute/unmute default recording/input device (microphone) (toggle and push-to-talk) using controller button
+- Fixes and improvements
+
 ## [1.9.0.0] - 2024-07-20
 - Added: Open file using keyboard key and/or controller button
 
@@ -67,6 +71,7 @@
 ## [1.0.0.0] - 2021-07-22
 - First release
 
+[1.9.1.0]: https://github.com/Adam777Z/xbox-controller-button-remapper/releases/tag/1.9.1.0
 [1.9.0.0]: https://github.com/Adam777Z/xbox-controller-button-remapper/releases/tag/1.9.0.0
 [1.8.0.0]: https://github.com/Adam777Z/xbox-controller-button-remapper/releases/tag/1.8.0.0
 [1.7.0.0]: https://github.com/Adam777Z/xbox-controller-button-remapper/releases/tag/1.7.0.0
