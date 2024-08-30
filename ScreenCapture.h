@@ -220,7 +220,7 @@ public:
 		)
 	{
 		CHECK_POINTER(pOutVal);
-		// reset output parameter
+		// Reset output parameter
 		RtlZeroMemory(pOutVal, sizeof(tagDublicatorMonitorInfo));
 		CHECK_POINTER_EX(pDxgiOutput, E_INVALIDARG);
 
@@ -317,9 +317,9 @@ public:
 		CHECK_POINTER_EX(pRendererInfo, E_INVALIDARG);
 
 		pRendererInfo->SrcFormat = pDxgiOutputDuplDesc->ModeDesc.Format;
-		// get rotate state
+		// Get rotate state
 		switch (pDxgiOutputDuplDesc->Rotation)
-		{		
+		{
 		case DXGI_MODE_ROTATION_ROTATE90:
 			pRendererInfo->RotationDegrees  = 90.0f;
 			pRendererInfo->SrcBounds.X      = 0;
@@ -350,13 +350,13 @@ public:
 			break;
 		}
 
-		// set the destination bounds
+		// Set the destination bounds
 		pRendererInfo->DstBounds.Width = pRendererInfo->SrcBounds.Width;
 		pRendererInfo->DstBounds.Height = pRendererInfo->SrcBounds.Height;
 
 		if ((pRendererInfo->RotationDegrees != 0.0f) && (pRendererInfo->RotationDegrees != 180.0f)) // 90 or 270 degrees
 		{
-			// center for output
+			// Center for output
 			pRendererInfo->DstBounds.X = pRendererInfo->SrcBounds.Width >> 1;
 			pRendererInfo->DstBounds.Y = pRendererInfo->SrcBounds.Height >> 1;
 		}
@@ -377,7 +377,7 @@ public:
 
 		if (uiNewSize <= pBufferInfo->BufferSize)
 		{
-			return S_FALSE; // no change
+			return S_FALSE; // No change
 		}
 
 		if (nullptr != pBufferInfo->Buffer)
@@ -387,11 +387,13 @@ public:
 		}
 
 		pBufferInfo->Buffer = new (std::nothrow) BYTE[uiNewSize];
+
 		if (!(pBufferInfo->Buffer))
 		{
 			pBufferInfo->BufferSize = 0;
 			return E_OUTOFMEMORY;
 		}
+
 		pBufferInfo->BufferSize = uiNewSize;
 
 		return S_OK;
@@ -423,8 +425,7 @@ public:
 		bool UpdatePosition = true;
 
 		// Make sure we don't update pointer position wrongly
-		// If pointer is invisible, make sure we did not get an update from another output that the last time that said pointer
-		// was visible, if so, don't set it to invisible or update.
+		// If pointer is invisible, make sure we did not get an update from another output that the last time that said pointer was visible, if so, don't set it to invisible or update
 		if (!FrameInfo->PointerPosition.Visible && (PtrInfo->WhoUpdatedPositionLast != MonitorIdx))
 		{
 			UpdatePosition = false;
@@ -452,7 +453,7 @@ public:
 			return S_OK;
 		}
 
-		// Old buffer too small
+		// Old buffer size is too small
 		if (FrameInfo->PointerShapeBufferSize > PtrInfo->ShapeBufferSize)
 		{
 			if (PtrInfo->PtrShapeBuffer != nullptr)
@@ -532,7 +533,7 @@ public:
 				return hr;
 			}
 
-			// use current mouseshape buffer
+			// Use current mouseshape buffer
 			// Copy mouseshape buffer
 			memcpy_s((void*)pBufferInfo->Buffer, pBufferInfo->BufferSize, (const void*)PtrInfo->PtrShapeBuffer, PtrInfo->ShapeBufferSize);
 			break;
@@ -579,6 +580,7 @@ public:
 		{
 			// Resize mouseshape buffer (if necessary)
 			hr = DXGICaptureHelper::ResizeFrameBuffer(pBufferInfo, pBufferInfo->Bounds.Height * pBufferInfo->Pitch);
+
 			if (FAILED(hr))
 			{
 				return hr;
@@ -618,6 +620,7 @@ public:
 				{
 					UINT I = j;
 					UINT J = width - 1 - i;
+
 					while ((i*height + j) >(I*width + J))
 					{
 						UINT p = I*width + J;
@@ -626,11 +629,12 @@ public:
 						I = tmp_j;
 						J = width - 1 - tmp_i;
 					}
+
 					std::swap(*(InitBuffer32 + (i*height + j)), *(InitBuffer32 + (I*width + J)));
 				}
 			}
 
-			// translate bounds
+			// Translate bounds
 			std::swap(pBufferInfo->Bounds.Width, pBufferInfo->Bounds.Height);
 			INT nX = pBufferInfo->Bounds.Y;
 			INT nY = DesktopWidth - (INT)(pBufferInfo->Bounds.X + pBufferInfo->Bounds.Height);
@@ -643,8 +647,9 @@ public:
 			// Rotate -180 or +180
 			if (height % 2 != 0)
 			{
-				//If N is odd reverse the middle row in the matrix
+				// If N is odd, reverse the middle row in the matrix
 				UINT j = height >> 1;
+
 				for (UINT i = 0; i < (width >> 1); i++)
 				{
 					std::swap(InitBuffer32[j * width + i], InitBuffer32[j * width + width - i - 1]);
@@ -659,7 +664,7 @@ public:
 				}
 			}
 
-			// translate position
+			// Translate position
 			INT nX = DesktopWidth  - (INT)(pBufferInfo->Bounds.X + pBufferInfo->Bounds.Width);
 			INT nY = DesktopHeight - (INT)(pBufferInfo->Bounds.Y + pBufferInfo->Bounds.Height);
 			pBufferInfo->Bounds.X = nX;
@@ -674,6 +679,7 @@ public:
 				{
 					UINT I = height - 1 - j;
 					UINT J = i;
+
 					while ((i*height + j) >(I*width + J))
 					{
 						int p = I*width + J;
@@ -682,11 +688,12 @@ public:
 						I = height - 1 - tmp_j;
 						J = tmp_i;
 					}
+
 					std::swap(*(InitBuffer32 + (i*height + j)), *(InitBuffer32 + (I*width + J)));
 				}
 			}
 
-			// translate bounds
+			// Translate bounds
 			std::swap(pBufferInfo->Bounds.Width, pBufferInfo->Bounds.Height);
 			INT nX = DesktopHeight - (pBufferInfo->Bounds.Y + pBufferInfo->Bounds.Width);
 			INT nY = pBufferInfo->Bounds.X;
@@ -751,38 +758,40 @@ public:
 
 		if (PtrLeft < 0)
 		{
-			// crop mouseshape left
+			// Crop mouseshape left
 			SrcLeft = -PtrLeft;
-			// new mouse x position for drawing
+			// New mouse x position for drawing
 			PtrLeft = 0;
 		}
 		else if (PtrLeft + PtrWidth > SurfWidth)
 		{
-			// crop mouseshape width
+			// Crop mouseshape width
 			SrcWidth = SurfWidth - PtrLeft;
 		}
 
 		if (PtrTop < 0)
 		{
-			// crop mouseshape top
+			// Crop mouseshape top
 			SrcTop = -PtrTop;
-			// new mouse y position for drawing
+			// New mouse y position for drawing
 			PtrTop = 0;
 		}
 		else if (PtrTop + PtrHeight > SurfHeight)
 		{
-			// crop mouseshape height
+			// Crop mouseshape height
 			SrcHeight = SurfHeight - PtrTop;
 		}
 
 		// QI for IDXGISurface
 		CComPtr<IDXGISurface> ipCopySurface;
 		hr = pSharedSurf->QueryInterface(__uuidof(IDXGISurface), (void **)&ipCopySurface);
+
 		if (SUCCEEDED(hr))
 		{
 			// Map pixels
 			DXGI_MAPPED_RECT MappedSurface;
 			hr = ipCopySurface->Map(&MappedSurface, DXGI_MAP_READ | DXGI_MAP_WRITE);
+
 			if (SUCCEEDED(hr))
 			{
 				// 0xAARRGGBB
@@ -899,6 +908,7 @@ public:
 		}
 
 		LPCWSTR lpcwExtension = ::PathFindExtensionW(lpcwFileName);
+
 		if (lstrlenW(lpcwExtension) == 0)
 		{
 			return MK_E_INVALIDEXTENSION; // ERROR_MRM_INVALID_FILE_TYPE
@@ -948,6 +958,7 @@ public:
 		GUID guidContainerFormat;
 
 		hr = GetContainerFormatByFileName(lpcwFileName, &guidContainerFormat);
+
 		if (FAILED(hr))
 		{
 			return hr;
@@ -973,38 +984,47 @@ public:
 		{
 			hr = ipWICImagingFactory->CreateEncoder(guidContainerFormat, NULL, &ipEncoder);
 		}
+
 		if (SUCCEEDED(hr))
 		{
 			hr = ipEncoder->Initialize(ipStream, WICBitmapEncoderNoCache);
 		}
+
 		if (SUCCEEDED(hr))
 		{
 			hr = ipEncoder->CreateNewFrame(&ipFrameEncode, NULL);
 		}
+
 		if (SUCCEEDED(hr))
 		{
 			hr = ipFrameEncode->Initialize(NULL);
 		}
+
 		if (SUCCEEDED(hr))
 		{
 			hr = ipWICBitmapSource->GetSize(&uiWidth, &uiHeight);
 		}
+
 		if (SUCCEEDED(hr))
 		{
 			hr = ipFrameEncode->SetSize(uiWidth, uiHeight);
 		}
+
 		if (SUCCEEDED(hr))
 		{
 			hr = ipFrameEncode->SetPixelFormat(&format);
 		}
+
 		if (SUCCEEDED(hr))
 		{
 			hr = ipFrameEncode->WriteSource(ipWICBitmapSource, NULL);
 		}
+
 		if (SUCCEEDED(hr))
 		{
 			hr = ipFrameEncode->Commit();
 		}
+
 		if (SUCCEEDED(hr))
 		{
 			hr = ipEncoder->Commit();

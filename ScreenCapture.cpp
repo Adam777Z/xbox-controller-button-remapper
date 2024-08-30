@@ -132,20 +132,25 @@ HRESULT CDXGICapture::loadMonitorInfos(ID3D11Device* pDevice)
 void CDXGICapture::freeMonitorInfos()
 {
 	size_t nCount = m_monitorInfos.size();
+
 	if (nCount == 0)
 	{
 		return;
 	}
+
 	DublicatorMonitorInfoVec::iterator it = m_monitorInfos.begin();
 	DublicatorMonitorInfoVec::iterator end = m_monitorInfos.end();
+
 	for (size_t i = 0; (i < nCount) && (it != end); i++, it++)
 	{
 		tagDublicatorMonitorInfo* pInfo = *it;
+
 		if (nullptr != pInfo)
 		{
 			delete pInfo;
 		}
 	}
+
 	m_monitorInfos.clear();
 }
 
@@ -170,10 +175,11 @@ HRESULT CDXGICapture::createDeviceResource(
 	RtlZeroMemory(&dgixOutputDesc, sizeof(dgixOutputDesc));
 	RtlZeroMemory(&rendererInfo, sizeof(rendererInfo));
 
-	// copy configuration to renderer info
+	// Copy configuration to renderer info
 	rendererInfo.MonitorIdx = pConfig->MonitorIdx;
 	rendererInfo.ShowCursor = pConfig->ShowCursor;
-	// default
+
+	// Default
 	rendererInfo.ScaleX = 1.0f;
 	rendererInfo.ScaleY = 1.0f;
 
@@ -237,6 +243,7 @@ HRESULT CDXGICapture::createDeviceResource(
 		desc.Usage = D3D11_USAGE_STAGING;
 
 		hr = m_ipD3D11Device->CreateTexture2D(&desc, NULL, &ipCopyTexture2D);
+
 		CHECK_HR_BREAK(hr);
 
 		if (nullptr == ipCopyTexture2D)
@@ -271,7 +278,7 @@ HRESULT CDXGICapture::createDeviceResource(
 			break;
 		}
 
-		//create WIC factory
+		// Create WIC factory
 		hr = CoCreateInstance(
 			CLSID_WICImagingFactory,
 			NULL,
@@ -281,7 +288,7 @@ HRESULT CDXGICapture::createDeviceResource(
 		);
 		CHECK_HR_BREAK(hr);
 
-		// create D2D1 target bitmap for render
+		// Create D2D1 target bitmap for render
 		hr = ipWICImageFactory->CreateBitmap(
 			(UINT)rendererInfo.DstBounds.Width,
 			(UINT)rendererInfo.DstBounds.Height,
@@ -296,7 +303,7 @@ HRESULT CDXGICapture::createDeviceResource(
 			break;
 		}
 
-		// create a D2D1 render target (for D2D1 drawing)
+		// Create a D2D1 render target (for D2D1 drawing)
 		D2D1_RENDER_TARGET_PROPERTIES d2d1RenderTargetProp = D2D1::RenderTargetProperties
 		(
 			D2D1_RENDER_TARGET_TYPE_DEFAULT,
@@ -348,10 +355,10 @@ void CDXGICapture::terminateDeviceResource()
 	m_ipWICOutputBitmap = nullptr;
 	m_ipD2D1RenderTarget = nullptr;
 
-	// clear config parameters
+	// Clear config parameters
 	RtlZeroMemory(&m_rendererInfo, sizeof(m_rendererInfo));
 
-	// clear mouse information parameters
+	// Clear mouse information parameters
 	if (m_mouseInfo.PtrShapeBuffer != nullptr)
 	{
 		delete[] m_mouseInfo.PtrShapeBuffer;
@@ -359,7 +366,7 @@ void CDXGICapture::terminateDeviceResource()
 	}
 	RtlZeroMemory(&m_mouseInfo, sizeof(m_mouseInfo));
 
-	// clear temp temp buffer
+	// Clear temp temp buffer
 	if (m_tempMouseBuffer.Buffer != nullptr)
 	{
 		delete[] m_tempMouseBuffer.Buffer;
@@ -367,13 +374,14 @@ void CDXGICapture::terminateDeviceResource()
 	}
 	RtlZeroMemory(&m_tempMouseBuffer, sizeof(m_tempMouseBuffer));
 
-	// clear desktop output desc
+	// Clear desktop output desc
 	RtlZeroMemory(&m_desktopOutputDesc, sizeof(m_desktopOutputDesc));
 }
 
 HRESULT CDXGICapture::Initialize()
 {
 	AUTOLOCK();
+
 	if (m_bInitialized)
 	{
 		return HRESULT_FROM_WIN32(ERROR_ALREADY_INITIALIZED); // already initialized
@@ -384,7 +392,7 @@ HRESULT CDXGICapture::Initialize()
 	CComPtr<ID3D11Device> ipDevice;
 	CComPtr<ID3D11DeviceContext> ipDeviceContext;
 
-	// required for monitor DPI problem (???)
+	// Required for monitor DPI problem (???)
 	SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
 
 	// Create device
@@ -426,14 +434,15 @@ HRESULT CDXGICapture::Initialize()
 		return E_UNEXPECTED;
 	}
 
-	// load all monitor informations
+	// Load all monitor informations
 	hr = loadMonitorInfos(ipDevice);
+
 	if (FAILED(hr))
 	{
 		return hr;
 	}
 
-	// set common fields
+	// Set common fields
 	m_lD3DFeatureLevel = lFeatureLevel;
 	m_ipD3D11Device = ipDevice;
 	m_ipD3D11DeviceContext = ipDeviceContext;
@@ -446,9 +455,10 @@ HRESULT CDXGICapture::Initialize()
 HRESULT CDXGICapture::Terminate()
 {
 	AUTOLOCK();
+
 	if (!m_bInitialized)
 	{
-		return S_FALSE; // already terminated
+		return S_FALSE; // Already terminated
 	}
 
 	this->terminateDeviceResource();
@@ -460,12 +470,14 @@ HRESULT CDXGICapture::Terminate()
 	freeMonitorInfos();
 
 	m_bInitialized = FALSE;
+
 	return S_OK;
 }
 
 HRESULT CDXGICapture::SetConfig(const tagScreenCaptureFilterConfig* pConfig)
 {
 	AUTOLOCK();
+
 	if (!m_bInitialized)
 	{
 		return D2DERR_NOT_INITIALIZED;
@@ -476,19 +488,21 @@ HRESULT CDXGICapture::SetConfig(const tagScreenCaptureFilterConfig* pConfig)
 		return E_INVALIDARG;
 	}
 
-	// terminate old resources
+	// Terminate old resources
 	this->terminateDeviceResource();
 
 	HRESULT hr = S_OK;
 	const tagDublicatorMonitorInfo* pSelectedMonitorInfo = nullptr;
 
 	pSelectedMonitorInfo = this->FindDublicatorMonitorInfo(pConfig->MonitorIdx);
+
 	if (nullptr == pSelectedMonitorInfo)
 	{
 		return E_INVALIDARG;
 	}
 
 	hr = this->createDeviceResource(pConfig, pSelectedMonitorInfo);
+
 	if (FAILED(hr))
 	{
 		return hr;
@@ -525,6 +539,7 @@ const tagDublicatorMonitorInfo* CDXGICapture::GetDublicatorMonitorInfo(int index
 	AUTOLOCK();
 
 	size_t nCount = m_monitorInfos.size();
+
 	if ((index < 0) || (index >= (int)nCount))
 	{
 		return nullptr;
@@ -538,15 +553,19 @@ const tagDublicatorMonitorInfo* CDXGICapture::FindDublicatorMonitorInfo(int moni
 	AUTOLOCK();
 
 	size_t nCount = m_monitorInfos.size();
+
 	if (nCount == 0)
 	{
 		return nullptr;
 	}
+
 	DublicatorMonitorInfoVec::const_iterator it = m_monitorInfos.begin();
 	DublicatorMonitorInfoVec::const_iterator end = m_monitorInfos.end();
+
 	for (size_t i = 0; (i < nCount) && (it != end); i++, it++)
 	{
 		tagDublicatorMonitorInfo* pInfo = *it;
+
 		if (monitorIdx == pInfo->Idx)
 		{
 			return pInfo;
@@ -579,13 +598,15 @@ HRESULT CDXGICapture::CaptureToFile(_In_ LPCWSTR lpcwOutputFileName, _Out_opt_ B
 	HRESULT hr = S_OK;
 
 	hr = DXGICaptureHelper::IsRendererInfoValid(&m_rendererInfo);
+
 	if (FAILED(hr))
 	{
 		return hr;
 	}
 
-	// is valid?
+	// Is valid?
 	hr = DXGICaptureHelper::GetContainerFormatByFileName(lpcwOutputFileName);
+
 	if (FAILED(hr))
 	{
 		return hr;
@@ -598,12 +619,14 @@ HRESULT CDXGICapture::CaptureToFile(_In_ LPCWSTR lpcwOutputFileName, _Out_opt_ B
 
 	// Get new frame
 	hr = m_ipDxgiOutputDuplication->AcquireNextFrame(1000, &FrameInfo, &ipDesktopResource);
+
 	if (hr == DXGI_ERROR_WAIT_TIMEOUT)
 	{
 		if (nullptr != pRetIsTimeout)
 		{
 			*pRetIsTimeout = TRUE;
 		}
+
 		return S_FALSE;
 	}
 	else if (FAILED(hr))
@@ -618,7 +641,7 @@ HRESULT CDXGICapture::CaptureToFile(_In_ LPCWSTR lpcwOutputFileName, _Out_opt_ B
 
 	if (nullptr == ipAcquiredDesktopImage)
 	{
-		// release frame
+		// Release frame
 		m_ipDxgiOutputDuplication->ReleaseFrame();
 		return E_OUTOFMEMORY;
 	}
@@ -629,6 +652,7 @@ HRESULT CDXGICapture::CaptureToFile(_In_ LPCWSTR lpcwOutputFileName, _Out_opt_ B
 	if (m_rendererInfo.ShowCursor)
 	{
 		hr = DXGICaptureHelper::GetMouse(m_ipDxgiOutputDuplication, &m_mouseInfo, &FrameInfo, (UINT)m_rendererInfo.MonitorIdx, m_desktopOutputDesc.DesktopCoordinates.left, m_desktopOutputDesc.DesktopCoordinates.top);
+
 		if (SUCCEEDED(hr) && m_mouseInfo.Visible)
 		{
 			hr = DXGICaptureHelper::DrawMouse(&m_mouseInfo, &m_desktopOutputDesc, &m_tempMouseBuffer, m_ipCopyTexture2D);
@@ -636,17 +660,17 @@ HRESULT CDXGICapture::CaptureToFile(_In_ LPCWSTR lpcwOutputFileName, _Out_opt_ B
 
 		if (FAILED(hr))
 		{
-			// release frame
+			// Release frame
 			m_ipDxgiOutputDuplication->ReleaseFrame();
 			return hr;
 		}
 	}
 
-	// release frame
+	// Release frame
 	hr = m_ipDxgiOutputDuplication->ReleaseFrame();
 	CHECK_HR_RETURN(hr);
 
-	// create D2D1 source bitmap
+	// Create D2D1 source bitmap
 	hr = DXGICaptureHelper::CreateBitmap(m_ipD2D1RenderTarget, m_ipCopyTexture2D, &ipD2D1SourceBitmap);
 	CHECK_HR_RETURN(hr);
 
@@ -662,7 +686,7 @@ HRESULT CDXGICapture::CaptureToFile(_In_ LPCWSTR lpcwOutputFileName, _Out_opt_ B
 		(FLOAT)(m_rendererInfo.DstBounds.Y + m_rendererInfo.DstBounds.Height));
 	D2D1_POINT_2F ptTransformCenter = D2D1::Point2F(m_rendererInfo.DstBounds.Width / 2.0f, m_rendererInfo.DstBounds.Height / 2.0f);
 
-	// Apply the rotation transform to the render target.
+	// Apply the rotation transform to the render target
 	D2D1::Matrix3x2F rotate = D2D1::Matrix3x2F::Rotation(
 		m_rendererInfo.RotationDegrees,
 		ptTransformCenter
@@ -677,7 +701,7 @@ HRESULT CDXGICapture::CaptureToFile(_In_ LPCWSTR lpcwOutputFileName, _Out_opt_ B
 	m_ipD2D1RenderTarget->SetTransform(rotate * scale);
 
 	m_ipD2D1RenderTarget->BeginDraw();
-	// clear background color
+	// Clear background color
 	m_ipD2D1RenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black, 1.0f));
 	m_ipD2D1RenderTarget->DrawBitmap(ipD2D1SourceBitmap, rcTarget, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, rcSource);
 	// Reset transform
@@ -685,12 +709,14 @@ HRESULT CDXGICapture::CaptureToFile(_In_ LPCWSTR lpcwOutputFileName, _Out_opt_ B
 	// Logo draw sample
 	//m_ipD2D1RenderTarget->DrawBitmap(ipBmpLogo, D2D1::RectF(0, 0, 2 * 200, 2 * 46));
 	hr = m_ipD2D1RenderTarget->EndDraw();
+
 	if (FAILED(hr))
 	{
 		return hr;
 	}
 
 	hr = DXGICaptureHelper::SaveImageToFile(m_ipWICImageFactory, m_ipWICOutputBitmap, lpcwOutputFileName);
+
 	if (FAILED(hr))
 	{
 		return hr;
