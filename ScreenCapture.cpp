@@ -25,7 +25,7 @@
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "windowscodecs.lib")
 
-#pragma comment(lib, "shcore.lib")     // SetProcessDpiAwareness
+#pragma comment(lib, "shcore.lib") // SetProcessDpiAwareness
 
 // Driver types supported
 const D3D_DRIVER_TYPE g_DriverTypes[] =
