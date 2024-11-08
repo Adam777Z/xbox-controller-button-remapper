@@ -1,5 +1,5 @@
 ﻿#include <string>
-#include <format>
+//#include <format>
 #include <chrono>
 #include <thread>
 #include <iostream>
@@ -12,12 +12,9 @@
 #include <stdio.h>
 #include <io.h>
 #include "INI.hpp"
-#include "SDL.h"
 #include "resource.h"
 #include <Xinput.h>
 #pragma comment(lib, "xinput.lib")
-//#include "ScreenCapture.h"
-#include "ScreenCapture2.cpp"
 #include <codecvt>
 #include <filesystem>
 //#include <Shlwapi.h>
@@ -28,10 +25,15 @@
 //#include <shlobj.h>
 //#include <algorithm>
 //#include <regex>
-#include <atomic>
-#include <thread>
-#include <future>
+//#include <atomic>
+//#include <thread>
+//#include <future>
+//#include <mfapi.h>
+#include <mmdeviceapi.h>
 #include <endpointvolume.h>
+
+#include "common.h"
+#include "ScreenCapture.h"
 
 // Need commctrl v6 for LoadIconMetric()
 #pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
@@ -40,8 +42,6 @@
 using namespace std;
 
 typedef std::chrono::high_resolution_clock hrc;
-
-const wchar_t szProgramName[] = L"Xbox Controller Button Remapper";
 
 struct KeySettings
 {
@@ -68,66 +68,21 @@ struct Controller
 
 static std::vector<Controller> controllers;
 handy::io::INIFile ini;
-bool debug = false;
 
 std::wstring file_location = L"C:\\Windows\\explorer.exe";
 int file_key = 0;
 int OpenFileHotKeyID = 3;
 
-std::wstring folder = L"";
-std::wstring file_path = L"";
-
-std::wstring captures_location = L"C:\\Screenshots";
 int screenshot_key = 0;
-int video_key = 0;
 int ScreenshotHotKeyID = 1;
-int VideoHotKeyID = 2;
-
-bool capture_cursor = false;
-int adapter = 0;
-int monitor = 0;
-std::wstring video_format = L"H264";
-int fps = 60;
-int video_bitrate = 9000;
-int video_factor = -1;
-int vbrm = 0;
-int vbrq = 0;
-int threads = 0;
-std::wstring audio_format = L"AAC";
-int audio_channels = 2;
-int audio_sample_rate = 48000;
-int audio_bitrate = 192;
-
-DESKTOPCAPTUREPARAMS dp_screenshot;
-DESKTOPCAPTUREPARAMS dp_video;
 
 bool sdl_initialized = false;
 bool screen_capture_initialized = false;
 bool input_device_initialized = false;
 
-std::mutex mtx;
-std::thread worker;
-std::atomic<bool> recording_video{ false }; // This needs to be atomic to avoid data races
-
 IMMDeviceEnumerator* pEnumerator = NULL;
 IMMDevice* pDevice = NULL;
 static IAudioEndpointVolume* g_pEndptVol = NULL;
-
-static void message(const LPCWSTR&& text)
-{
-	MessageBox(NULL, text, szProgramName, MB_OK);
-}
-
-static void error(const LPCWSTR&& text)
-{
-	MessageBox(NULL, text, L"Error", MB_OK);
-}
-
-static void fatal_error(const LPCWSTR&& text)
-{
-	MessageBox(NULL, text, L"Fatal Error", MB_OK);
-	exit(1);
-}
 
 static std::wstring get_exe_filename()
 {
@@ -140,485 +95,6 @@ static std::wstring get_exe_path()
 {
 	std::wstring f = get_exe_filename();
 	return f.substr(0, f.find_last_of(L"\\/"));
-}
-
-static std::string get_date_time()
-{
-	std::time_t t = std::time(nullptr);
-	char date_time[20];
-	std::strftime(date_time, sizeof(date_time), "%Y-%m-%d %H:%M:%S", std::localtime(&t));
-	return date_time;
-}
-
-// Source: https://gist.github.com/utilForever/fdf1540cea0de65cfc0a1a69d8cafb63
-// Replace some pattern in std::wstring with another pattern
-static std::wstring replace_wstring_with_pattern(__in const std::wstring& message, __in const std::wstring& pattern, __in const std::wstring& replace)
-{
-	std::wstring result = message;
-	std::wstring::size_type pos = 0;
-	std::wstring::size_type offset = 0;
-
-	while ((pos = result.find(pattern, offset)) != std::wstring::npos)
-	{
-		result.replace(result.begin() + pos, result.begin() + pos + pattern.size(), replace);
-		offset = pos + replace.size();
-	}
-
-	return result;
-}
-
-static const std::wstring forbidden_chars = L"\\/:*?\"<>|";
-static bool is_forbidden(wchar_t c)
-{
-	return std::wstring::npos != forbidden_chars.find(c);
-}
-
-// Source: https://gist.github.com/danzek/d6a0e4a48a5439e7f808ed1497f6268e
-static std::wstring string_to_wstring(const std::string& str)
-{
-	using convert_typeX = std::codecvt_utf8<wchar_t>;
-	std::wstring_convert<convert_typeX, wchar_t> converterX;
-
-	return converterX.from_bytes(str);
-}
-
-static void set_file_path(std::wstring extension)
-{
-	HWND foreground = GetForegroundWindow();
-	WCHAR window_title[256];
-	GetWindowText(foreground, window_title, _countof(window_title));
-
-	std::wstring window_title2(window_title);
-	//window_title2 = L"Test\\/:*?\"<>|";
-	//window_title2 = replace_wstring_with_pattern(window_title2, L":", L"꞉"); // Replace forbidden character with allowed character that looks similar
-	window_title2 = replace_wstring_with_pattern(window_title2, L":", L" -");
-	std::replace_if(window_title2.begin(), window_title2.end(), is_forbidden, '_');
-
-	if (window_title2.empty())
-	{
-		window_title2 = L"Screenshot"; // Default title
-	}
-
-	//LPWSTR wnd_title{};
-	//HWND hWnd = GetForegroundWindow(); // Get handle of currently active window
-	//GetWindowText(hWnd, wnd_title, sizeof(wnd_title));
-
-	/*TCHAR current_path[MAX_PATH];
-	GetModuleFileName(NULL, current_path, MAX_PATH);
-	//PathRemoveFileSpec(current_path);
-	PathCchRemoveFileSpec(current_path, MAX_PATH);*/
-
-	/*std::string s1 = std::format("{:%F %T}", std::chrono::system_clock::now());
-	std::string s2 = std::format("{:%F %T %Z}", std::chrono::system_clock::now());
-	std::string s3 = std::format("{:%F %T %Z}", std::chrono::zoned_time{ std::chrono::current_zone(), std::chrono::system_clock::now() });*/
-
-	std::string datetime = std::format("{:%Y-%m-%d %H-%M-%S}", std::chrono::zoned_time{ std::chrono::current_zone(), std::chrono::system_clock::now() });
-	//std::wstring datetime2 = std::filesystem::path(datetime).wstring(); // Convert from string to wstring
-	std::wstring datetime2 = string_to_wstring(datetime); // Convert from string to wstring
-	datetime2 = datetime2.substr(0, datetime2.find('.') + 4); // Keep last 3 digits only
-	std::replace(datetime2.begin(), datetime2.end(), '.', '-');
-	//std::wstring file_path = std::wstring(captures_location) + L"\\" + window_title2 + L" Screenshot " + datetime2 + extension;
-	folder = std::wstring(captures_location) + L"\\" + window_title2;
-
-	if (!std::filesystem::exists(folder)) // Check if folder exists
-	{
-		if (!std::filesystem::create_directories(folder)) // Create folder
-		{
-			if (debug)
-			{
-				SDL_Log("%s: Could not create folder for screenshot.\n", get_date_time().c_str());
-			}
-
-			return;
-		}
-	}
-
-	file_path = folder + L"\\" + window_title2 + L" " + datetime2 + extension;
-}
-
-static HRESULT save_png(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UINT pHeight)
-{
-	LPCWSTR Path = file_path.c_str();
-	HRESULT hr;
-	int multi = 4;
-	
-	//WICPixelFormatGUID format = GUID_WICPixelFormat32bppRGB;
-	//WICPixelFormatGUID format = GUID_WICPixelFormat32bppRGBA; // DXGI_FORMAT_R8G8B8A8_UNORM
-	//WICPixelFormatGUID format = GUID_WICPixelFormat24bppBGR;
-	//WICPixelFormatGUID format = GUID_WICPixelFormat32bppBGR; // DXGI_FORMAT_B8G8R8X8_UNORM
-	WICPixelFormatGUID format = GUID_WICPixelFormat32bppBGRA; // DXGI_FORMAT_B8G8R8A8_UNORM
-	
-	CComPtr<IWICImagingFactory2> m_pWICFactory;
-	//CComPtr<IWICBitmapSource> pSource2(pSource);
-	//CComPtr<IWICBitmapSource> pSource2;
-	CComPtr<IWICBitmap> pSource2;
-	CComPtr<IWICStream> pStream;
-	CComPtr<IWICBitmapEncoder> pEncoder;
-	CComPtr<IWICBitmapFrameEncode> pFrame;
-
-	/*hr = CoCreateInstance(
-		CLSID_WICImagingFactory2,
-		NULL,
-		CLSCTX_INPROC_SERVER,
-		IID_IWICImagingFactory2,
-		reinterpret_cast<void**>(&m_pWICFactory)
-	);*/
-	hr = m_pWICFactory.CoCreateInstance(CLSID_WICImagingFactory2);
-	//hr = CoCreateInstance(CLSID_WICImagingFactory2, 0, CLSCTX_INPROC_SERVER, __uuidof(IWICImagingFactory2), (void**)&m_pWICFactory);
-
-	if (SUCCEEDED(hr))
-	{
-		hr = m_pWICFactory->CreateBitmapFromMemory(pWidth, pHeight, format, pWidth * multi, pWidth * pHeight * multi, (BYTE*)pSource, &pSource2);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = m_pWICFactory->CreateStream(&pStream);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pStream->InitializeFromFilename(Path, GENERIC_WRITE);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = m_pWICFactory->CreateEncoder(GUID_ContainerFormatPng, NULL, &pEncoder);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pEncoder->Initialize(pStream, WICBitmapEncoderNoCache);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pEncoder->CreateNewFrame(&pFrame, NULL);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pFrame->Initialize(NULL);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pFrame->SetSize(pWidth, pHeight);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pFrame->SetPixelFormat(&format);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pFrame->WritePixels(pHeight, pWidth * multi, (UINT)pSourceSize, (BYTE*)pSource);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pFrame->Commit();
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pEncoder->Commit();
-	}
-
-	return hr;
-}
-
-static HRESULT save_jxr(const BYTE* pSource, size_t pSourceSize, UINT pWidth, UINT pHeight)
-{
-	LPCWSTR Path = file_path.c_str();
-	HRESULT hr;
-	int multi = 8; // 64-bit HDR
-	WICPixelFormatGUID format = GUID_WICPixelFormat64bppRGBAHalf; // DXGI_FORMAT_R16G16B16A16_FLOAT
-	CComPtr<IWICImagingFactory2> m_pWICFactory;
-	//CComPtr<IWICBitmapSource> pSource2(pSource);
-	//CComPtr<IWICBitmapSource> pSource2;
-	CComPtr<IWICBitmap> pSource2;
-	CComPtr<IWICStream> pStream;
-	CComPtr<IWICBitmapEncoder> pEncoder;
-	CComPtr<IWICBitmapFrameEncode> pFrame;
-
-	hr = m_pWICFactory.CoCreateInstance(CLSID_WICImagingFactory2);
-	//hr = CoCreateInstance(CLSID_WICImagingFactory2, 0, CLSCTX_INPROC_SERVER, __uuidof(IWICImagingFactory2), (void**)&m_pWICFactory);
-
-	if (SUCCEEDED(hr))
-	{
-		hr = m_pWICFactory->CreateBitmapFromMemory(pWidth, pHeight, format, pWidth * multi, pWidth * pHeight * multi, (BYTE*)pSource, &pSource2);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = m_pWICFactory->CreateStream(&pStream);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pStream->InitializeFromFilename(Path, GENERIC_WRITE);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = m_pWICFactory->CreateEncoder(GUID_ContainerFormatWmp, NULL, &pEncoder);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pEncoder->Initialize(pStream, WICBitmapEncoderNoCache);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pEncoder->CreateNewFrame(&pFrame, NULL);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pFrame->Initialize(NULL);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pFrame->SetSize(pWidth, pHeight);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pFrame->SetPixelFormat(&format);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pFrame->WritePixels(pHeight, pWidth * multi, (UINT)pSourceSize, (BYTE*)pSource);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pFrame->Commit();
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = pEncoder->Commit();
-	}
-
-	return hr;
-}
-
-static void initialize_screen_capture()
-{
-	if (!screen_capture_initialized)
-	{
-		dp_screenshot.HasVideo = 1;
-		dp_screenshot.HasAudio = 0;
-		dp_screenshot.Cursor = capture_cursor;
-		dp_screenshot.ad = reinterpret_cast<IDXGIAdapter1*>(static_cast<uintptr_t>(adapter));
-		dp_screenshot.nOutput = monitor;
-		dp_screenshot.f = L"";
-
-		// To callback frame
-		dp_screenshot.Framer = [](const BYTE* b, size_t sz, UINT wi, UINT he, void* cb)
-			{
-				if (b && sz)
-				{
-					/*if (IsHDR)
-					{
-						set_file_path(L".jxr");
-						save_jxr(b, sz, wi, he);
-					}
-					else
-					{*/
-						set_file_path(L".png");
-						save_png(b, sz, wi, he);
-					//}
-
-					if (debug)
-					{
-						SDL_Log("%s: Captured screenshot.\n", get_date_time().c_str());
-					}
-
-					return S_OK;
-				}
-
-				return S_FALSE;
-			};
-
-		dp_video.HasVideo = 1;
-		dp_video.HasAudio = 1;
-		dp_video.Cursor = capture_cursor;
-		dp_video.ad = reinterpret_cast<IDXGIAdapter1*>(static_cast<uintptr_t>(adapter));
-		dp_video.nOutput = monitor;
-
-		if (video_format == L"AV1")
-		{
-			dp_video.VIDEO_ENCODING_FORMAT = MFVideoFormat_AV1;
-		}
-		else if (video_format == L"HEVC")
-		{
-			dp_video.VIDEO_ENCODING_FORMAT = MFVideoFormat_HEVC;
-		}
-		else
-		{
-			dp_video.VIDEO_ENCODING_FORMAT = MFVideoFormat_H264;
-		}
-
-		dp_video.fps = fps;
-		dp_video.BR = video_bitrate;
-		dp_video.Qu = video_factor;
-		dp_video.vbrm = vbrm;
-		dp_video.vbrq = vbrq;
-		dp_video.NumThreads = threads;
-
-		if (audio_format == L"FLAC")
-		{
-			dp_video.AUDIO_ENCODING_FORMAT = MFAudioFormat_FLAC;
-		}
-		else if (audio_format == L"MP3")
-		{
-			dp_video.AUDIO_ENCODING_FORMAT = MFAudioFormat_MP3;
-		}
-		else
-		{
-			dp_video.AUDIO_ENCODING_FORMAT = MFAudioFormat_AAC;
-		}
-
-		dp_video.NCH = audio_channels;
-		dp_video.SR = audio_sample_rate;
-		dp_video.ABR = audio_bitrate;
-
-		screen_capture_initialized = true;
-	}
-}
-
-static void take_screenshot()
-{
-	/*
-	// Set config
-	tagScreenCaptureFilterConfig config;
-	RtlZeroMemory(&config, sizeof(config));
-	config.MonitorIdx = 0;
-	config.ShowCursor = 0;
-
-	HRESULT hr = S_OK;
-
-	//hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
-	hr = CoInitialize(NULL);
-	if (FAILED(hr))
-	{
-		if (debug)
-		{
-			SDL_Log("%s: Error[0x%08X]: CoInitialize failed.\n", get_date_time().c_str(), hr);
-		}
-
-		return;
-	}
-
-	// First initialize
-	CDXGICapture dxgiCapture;
-	hr = dxgiCapture.Initialize();
-	if (FAILED(hr))
-	{
-		if (debug)
-		{
-			SDL_Log("%s: Error[0x%08X]: CDXGICapture::Initialize failed.\n", get_date_time().c_str(), hr);
-		}
-
-		return;
-	}
-
-	// Select monitor by ID
-	const tagDublicatorMonitorInfo* pMonitorInfo = dxgiCapture.FindDublicatorMonitorInfo(config.MonitorIdx);
-	if (nullptr == pMonitorInfo)
-	{
-		if (debug)
-		{
-			SDL_Log("%s: Error: Monitor '%d' was not found.\n", get_date_time().c_str(), config.MonitorIdx);
-		}
-
-		return;
-	}
-
-	hr = dxgiCapture.SetConfig(config);
-	if (FAILED(hr))
-	{
-		if (debug)
-		{
-			SDL_Log("%s: Error[0x%08X]: CDXGICapture::SetConfig failed.\n", get_date_time().c_str(), hr);
-		}
-
-		return;
-	}
-
-	Sleep(50);
-
-	set_file_path(L".png");
-
-	hr = dxgiCapture.CaptureToFile(file_path.c_str(), NULL);
-
-	//dxgiCapture.Terminate();
-
-	if (FAILED(hr))
-	{
-		if (debug)
-		{
-			SDL_Log("%s: Error[0x%08X]: CDXGICapture::CaptureToFile failed.\n", get_date_time().c_str(), hr);
-		}
-
-		return;
-	}
-	*/
-
-	if (!screen_capture_initialized)
-	{
-		initialize_screen_capture();
-	}
-
-	DesktopCapture(dp_screenshot);
-}
-
-static void record_video()
-{
-	if (!screen_capture_initialized)
-	{
-		initialize_screen_capture();
-	}
-
-	std::lock_guard<std::mutex> guard(mtx);
-
-	if (!recording_video)
-	{
-		// Start recording video
-
-		set_file_path(L".mp4");
-
-		dp_video.f = file_path;
-		dp_video.MustEnd = false;
-
-		worker = std::thread([] { DesktopCapture(dp_video); }); // Run DesktopCapture in a separate thread
-		worker.detach(); // Detach the thread
-
-		recording_video = true;
-
-		if (debug)
-		{
-			SDL_Log("%s: Video recording started.\n", get_date_time().c_str());
-		}
-	}
-	else
-	{
-		// Stop recording video
-		dp_video.MustEnd = true;
-		recording_video = false;
-
-		if (debug)
-		{
-			SDL_Log("%s: Video recording stopped.\n", get_date_time().c_str());
-		}
-	}
 }
 
 static void initialize_default_input_device()
@@ -671,9 +147,9 @@ static void load_controller_config(int i)
 {
 	std::wstring controller = L"controller" + std::to_wstring(i + 1);
 
-	controllers[i].settings.share.key = ini.getIntegers(controller, L"share_key", { 901 });
+	controllers[i].settings.share.key = ini.getIntegers(controller, L"share_key", { 0 });
 	controllers[i].settings.share.hold_mode = ini.getInteger(controller, L"share_hold_mode", 2);
-	controllers[i].settings.share.longpress_key = ini.getIntegers(controller, L"share_longpress_key", { 902 });
+	controllers[i].settings.share.longpress_key = ini.getIntegers(controller, L"share_longpress_key", { 0 });
 	controllers[i].settings.share.longpress_duration = ini.getInteger(controller, L"share_longpress_duration", 1000);
 	controllers[i].settings.share.delay = ini.getInteger(controller, L"share_delay", 0);
 	controllers[i].settings.share.duration = ini.getInteger(controller, L"share_duration", 1);
@@ -804,9 +280,9 @@ static void initialize_sdl()
 
 static void key_down(int code)
 {
-	if (code == 901 || code == 902 || code == 903 || code == 904)
+	if (code == 901 || code == 903 || code == 904)
 	{
-		// Take screenshot / record video / open file / toggle mute/unmute on button release only
+		// Take screenshot / open file / toggle mute/unmute on button release only
 		return;
 	}
 	else if (code == 905)
@@ -841,11 +317,6 @@ static void key_up(int code)
 	if (code == 901)
 	{
 		take_screenshot();
-		return;
-	}
-	else if (code == 902)
-	{
-		record_video();
 		return;
 	}
 	else if (code == 903)
@@ -1140,8 +611,10 @@ static void AddNotificationIcon(HWND hWnd)
 
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ PWSTR pCmdLine, _In_ int nCmdShow)
 {
-	HRESULT hr = CoInitializeEx(0, COINIT_APARTMENTTHREADED);
-	MFStartup(MF_VERSION);
+	//HRESULT hr = CoInitializeEx(0, COINIT_APARTMENTTHREADED);
+	winrt::init_apartment(); // Init COM
+
+	//MFStartup(MF_VERSION);
 
 	// Try to create the mutex
 	hMutex = CreateMutex(NULL, FALSE, szProgramName);
@@ -1219,28 +692,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		RegisterHotKey(hWnd, ScreenshotHotKeyID, MOD_NOREPEAT, screenshot_key_vk);
 	}
 
-	video_key = ini.getInteger(L"screen_capture", L"video_key", 0);
-
-	if (video_key != 0)
-	{
-		UINT video_key_vk = MapVirtualKey(video_key, MAPVK_VSC_TO_VK_EX);
-		RegisterHotKey(hWnd, VideoHotKeyID, MOD_NOREPEAT, video_key_vk);
-	}
-
+	capture_border = ini.getInteger(L"screen_capture", L"border", 1) == 1;
 	capture_cursor = ini.getInteger(L"screen_capture", L"cursor", 0) == 1;
-	adapter = ini.getInteger(L"screen_capture", L"adapter", 0);
-	monitor = ini.getInteger(L"screen_capture", L"monitor", 0);
-	video_format = ini.getString(L"screen_capture", L"video_format", L"H264");
-	fps = ini.getInteger(L"screen_capture", L"fps", 60);
-	video_bitrate = ini.getInteger(L"screen_capture", L"video_bitrate", 9000);
-	video_factor = ini.getInteger(L"screen_capture", L"video_factor", -1);
-	vbrm = ini.getInteger(L"screen_capture", L"vbrm", 0);
-	vbrq = ini.getInteger(L"screen_capture", L"vbrq", 0);
-	threads = ini.getInteger(L"screen_capture", L"threads", 0);
-	audio_format = ini.getString(L"screen_capture", L"audio_format", L"AAC");
-	audio_channels = ini.getInteger(L"screen_capture", L"audio_channels", 2);
-	audio_sample_rate = ini.getInteger(L"screen_capture", L"audio_sample_rate", 48000);
-	audio_bitrate = ini.getInteger(L"screen_capture", L"audio_bitrate", 192);
 
 	while (true)
 	{
@@ -1265,15 +718,6 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 					}
 
 					take_screenshot();
-				}
-				else if (msg.wParam == VideoHotKeyID)
-				{
-					if (debug)
-					{
-						SDL_Log("%s: Video HotKey pressed.\n", get_date_time().c_str());
-					}
-
-					record_video();
 				}
 				else if (msg.wParam == OpenFileHotKeyID)
 				{
@@ -1404,6 +848,8 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			CoUninitialize();
 
+			//MFShutdown();
+
 			if (file_key != 0)
 			{
 				UnregisterHotKey(hWnd, OpenFileHotKeyID);
@@ -1412,11 +858,6 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			if (screenshot_key != 0)
 			{
 				UnregisterHotKey(hWnd, ScreenshotHotKeyID);
-			}
-
-			if (video_key != 0)
-			{
-				UnregisterHotKey(hWnd, VideoHotKeyID);
 			}
 
 			if (input_device_initialized)

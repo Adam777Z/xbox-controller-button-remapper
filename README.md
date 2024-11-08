@@ -1,9 +1,9 @@
 # Xbox Controller Button Remapper
 
-A small program that runs in the background and sends the configured key(s) when the Xbox button and/or Share button is pressed on the controller.
+A small program that runs in the background and sends the configured key(s)/triggers action when the Xbox button and/or Share button is pressed on the controller.
 
-Supports capturing screenshots and videos directly without any other program involved so the button prompts do not change in the game after pressing the Xbox/Share button on the controller to take the screenshot/video.\
-Can also capture screenshots and videos using keys on the keyboard.
+Supports capturing screenshots directly without any other program involved so the button prompts do not change in the game after pressing the Xbox/Share button on the controller to take the screenshot.\
+Can also capture screenshots using keys on the keyboard.
 
 Can also open any file using keyboard key and/or controller button so the button prompts do not change in the game.
 
@@ -29,7 +29,6 @@ Remapping the Share button only works when the **Windows Game Recording and Broa
 - Wait before sending key(s) (delay)
 - Wait before releasing key(s) (duration)
 - Capture screenshots using keyboard key and/or controller button
-- Capture videos using keyboard key and/or controller button
 - Open file using keyboard key and/or controller button
 - Mute/unmute default recording/input device (microphone) (toggle and push-to-talk) using controller button
 - Configure the program using the config.ini file
@@ -54,11 +53,13 @@ Available under [Discussions](https://github.com/Adam777Z/xbox-controller-button
 1. Have [SDL](https://github.com/libsdl-org/SDL) in the SDL folder:\
 SDL\include\
 SDL\VisualC\x64\Release
-2. Open the Visual Studio Solution file and build
+2. Open the Visual Studio Solution file
+3. Install packages in [NuGet Package Manager](https://learn.microsoft.com/en-us/nuget/consume-packages/install-use-packages-visual-studio)
+4. [Build Solution](https://learn.microsoft.com/en-us/visualstudio/ide/building-and-cleaning-projects-and-solutions-in-visual-studio)
 
 ## Credits
 - Thanks to Microsoft for the Xbox Controller
 - [button_on_360_guide](https://www.reddit.com/r/emulation/comments/1goval/any_way_to_map_the_middle_xbox_360_button/camujj7/) (GitHub: [1](https://github.com/pinumbernumber/Xbox-360-Guide-Button-Remapper), [2](https://github.com/CautemocSg/xbox-360-guide-remapper))\
-Thanks to the creator of the original program and the source code so it could be improved. It was improved.
+Thanks to the creator of the original program and the source code that allowed it to be improved.
 - [SDL](https://github.com/libsdl-org/SDL)
-- Desktop Duplication API for capturing screenshots and videos ([1](https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/desktop-dup-api), [2](https://github.com/microsoft/Windows-classic-samples/tree/main/Samples/DXGIDesktopDuplication), [3](https://github.com/microsoftarchive/msdn-code-gallery-microsoft/tree/master/Official%20Windows%20Platform%20Sample/DXGI%20desktop%20duplication%20sample), [4](https://www.codeproject.com/Tips/1116253/Desktop-Screen-Capture-on-Windows-via-Windows-Desk), [5](https://github.com/GERD0GDU/dxgi_desktop_capture), [6](https://github.com/WindowsNT/ScreenCapture), [7](https://www.codeproject.com/Articles/5256890/ScreenCapture-Single-Header-DirectX-Library-with-H))
+- Windows.Graphics.Capture APIs for capturing screenshots ([1](https://learn.microsoft.com/en-us/uwp/api/windows.graphics.capture), [2](https://learn.microsoft.com/en-us/windows/uwp/audio-video-camera/screen-capture), [3](https://blogs.windows.com/windowsdeveloper/2019/09/16/new-ways-to-do-screen-capture/), [4](https://github.com/robmikh/Win32CaptureSample), [5](https://github.com/robmikh/ScreenshotSample))
