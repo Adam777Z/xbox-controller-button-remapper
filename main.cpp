@@ -178,12 +178,12 @@ static void add_controllers()
 			SDL_JoystickID instance_id = gamepads[i];
 
 			char guid[64];
-			SDL_GetJoystickGUIDString(SDL_GetJoystickInstanceGUID(instance_id), guid, sizeof(guid));
+			SDL_GUIDToString(SDL_GetJoystickGUIDForID(instance_id), guid, sizeof(guid));
 			add_controller_mapping(guid);
 
 			if (debug)
 			{
-				SDL_Log("%s: Mapping: %s\n", get_date_time().c_str(), SDL_GetGamepadMappingForGUID(SDL_GetJoystickInstanceGUID(instance_id)));
+				SDL_Log("%s: Mapping: %s\n", get_date_time().c_str(), SDL_GetGamepadMappingForGUID(SDL_GetJoystickGUIDForID(instance_id)));
 			}
 
 			SDL_Gamepad* controller = SDL_OpenGamepad(instance_id);
@@ -245,7 +245,7 @@ static int find_controller(SDL_JoystickID controller_id)
 {
 	for (int i = 0; i < controllers.size(); ++i)
 	{
-		if (controller_id == SDL_GetGamepadInstanceID(controllers[i].controller))
+		if (controller_id == SDL_GetGamepadID(controllers[i].controller))
 		{
 			return i;
 		}
@@ -265,7 +265,7 @@ static void initialize_sdl()
 
 	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
 
-	sdl_initialized = SDL_Init(SDL_INIT_GAMEPAD) == 0;
+	sdl_initialized = SDL_Init(SDL_INIT_GAMEPAD);
 
 	if (!sdl_initialized)
 	{
@@ -439,7 +439,7 @@ static void loop()
 			case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
 				if (debug)
 				{
-					SDL_Log("%s: Controller %d button %s %s.\n", get_date_time().c_str(), find_controller(event.gdevice.which) + 1, SDL_GetGamepadStringForButton((SDL_GamepadButton)event.gbutton.button), event.gbutton.state ? "pressed" : "released");
+					SDL_Log("%s: Controller %d button %s %s.\n", get_date_time().c_str(), find_controller(event.gdevice.which) + 1, SDL_GetGamepadStringForButton((SDL_GamepadButton)event.gbutton.button), event.gbutton.down ? "pressed" : "released");
 				}
 
 				if (event.gbutton.button == SDL_GAMEPAD_BUTTON_MISC1 || event.gbutton.button == SDL_GAMEPAD_BUTTON_GUIDE)
@@ -473,7 +473,7 @@ static void loop()
 			case SDL_EVENT_GAMEPAD_BUTTON_UP:
 				if (debug)
 				{
-					SDL_Log("%s: Controller %d button %s %s.\n", get_date_time().c_str(), find_controller(event.gdevice.which) + 1, SDL_GetGamepadStringForButton((SDL_GamepadButton)event.gbutton.button), event.gbutton.state ? "pressed" : "released");
+					SDL_Log("%s: Controller %d button %s %s.\n", get_date_time().c_str(), find_controller(event.gdevice.which) + 1, SDL_GetGamepadStringForButton((SDL_GamepadButton)event.gbutton.button), event.gbutton.down ? "pressed" : "released");
 				}
 
 				if (event.gbutton.button == SDL_GAMEPAD_BUTTON_MISC1 || event.gbutton.button == SDL_GAMEPAD_BUTTON_GUIDE)
