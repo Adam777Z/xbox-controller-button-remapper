@@ -129,4 +129,9 @@ private:
     bool m_clipHDR = false;
 };
 
+extern bool screen_capture_initialized;
+
+extern winrt::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice device;
+extern std::shared_ptr<ToneMapper> toneMapper;
+
 void take_screenshot();

@@ -170,7 +170,7 @@ std::vector<Display> Display::GetAllDisplays()
         winrt::check_bool(GetMonitorInfoW(displayHandle, &monitorInfo));
         std::wstring name(monitorInfo.szDevice);
 
-        // This sample assumes the displays will be found
+        // This assumes the displays will be found
         // If the display information is not found, it can be assumed the display isn't HDR
         auto hdrInfo = namesToHDRInfos[name];
         auto maxLuminance = maxLuminances[displayHandle];
@@ -418,24 +418,42 @@ winrt::IAsyncAction SaveTextureToFileAsync(
     winrt::StorageFile const& file);
 void LoadOptions(bool dxDebug, bool forceHDR, bool clipHDR);
 
+bool screen_capture_initialized = false;
+
+winrt::IDirect3DDevice device = NULL;
+std::shared_ptr<ToneMapper> toneMapper = NULL;
+
+static void initialize_screen_capture()
+{
+    if (!screen_capture_initialized)
+    {
+        // Init D3D
+        uint32_t d3dFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+
+        if (Options::DxDebug())
+        {
+            d3dFlags |= D3D11_CREATE_DEVICE_DEBUG;
+        }
+
+        // These helpers can be found in the robmikh.common package:
+        // CreateD3D11Device: https://github.com/robmikh/robmikh.common/blob/5b17ef46d28e0d188baaa1d091ef1354eeb3c42c/robmikh.common/include/robmikh.common/d3d11Helpers.h#L34-L45
+        // CreateDirect3DDevice: https://github.com/robmikh/robmikh.common/blob/f2311df8de56f31410d14f55de7307464d9a673d/robmikh.common/include/robmikh.common/direct3d11.interop.h#L19-L24
+        auto d3dDevice = util::CreateD3D11Device(d3dFlags);
+        device = CreateDirect3DDevice(d3dDevice.as<IDXGIDevice>().get());
+
+        // Create the tone mapper
+        toneMapper = std::make_shared<ToneMapper>(d3dDevice);
+
+        screen_capture_initialized = true;
+    }
+}
+
 winrt::IAsyncAction MainAsync()
 {
-    // Init D3D
-    uint32_t d3dFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-
-    if (Options::DxDebug())
+    if (!screen_capture_initialized)
     {
-        d3dFlags |= D3D11_CREATE_DEVICE_DEBUG;
+        initialize_screen_capture();
     }
-
-    // These helpers can be found in the robmikh.common package:
-    // CreateD3D11Device: https://github.com/robmikh/robmikh.common/blob/5b17ef46d28e0d188baaa1d091ef1354eeb3c42c/robmikh.common/include/robmikh.common/d3d11Helpers.h#L34-L45
-    // CreateDirect3DDevice: https://github.com/robmikh/robmikh.common/blob/f2311df8de56f31410d14f55de7307464d9a673d/robmikh.common/include/robmikh.common/direct3d11.interop.h#L19-L24
-    auto d3dDevice = util::CreateD3D11Device(d3dFlags);
-    auto device = CreateDirect3DDevice(d3dDevice.as<IDXGIDevice>().get());
-
-    // Create the tone mapper
-    auto toneMapper = std::make_shared<ToneMapper>(d3dDevice);
 
     // Enumerate displays
     auto displays = Display::GetAllDisplays();

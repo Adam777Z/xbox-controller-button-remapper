@@ -77,7 +77,6 @@ int screenshot_key = 0;
 int ScreenshotHotKeyID = 1;
 
 bool sdl_initialized = false;
-bool screen_capture_initialized = false;
 bool input_device_initialized = false;
 
 IMMDeviceEnumerator* pEnumerator = NULL;
@@ -858,6 +857,14 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			if (screenshot_key != 0)
 			{
 				UnregisterHotKey(hWnd, ScreenshotHotKeyID);
+			}
+
+			if (screen_capture_initialized)
+			{
+				device = NULL;
+				toneMapper = NULL;
+
+				screen_capture_initialized = false;
 			}
 
 			if (input_device_initialized)
