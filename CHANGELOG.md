@@ -1,7 +1,7 @@
 # Changelog
 
 ## [2.0.0.0] - 2024-11-17
-- Updated: Take screenshot using keyboard key and/or controller button. Improved compatibility, now supports more games.
+- Updated: Take screenshot using keyboard key and/or controller button. Now compatible with more games.
 - Removed: Record video. Reason: It did not work well.
 - Updated: Default configuration (config.ini). No remapping by default.
 - Updated SDL to version 3.1.6
