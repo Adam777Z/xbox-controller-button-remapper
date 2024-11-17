@@ -1,7 +1,7 @@
 # Changelog
 
 ## [2.0.0.0] - 2024-11-17
-- Updated: Take screenshot using keyboard key and/or controller button. Better compatibility (works with more games now).
+- Updated: Take screenshot using keyboard key and/or controller button. Improved compatibility, now supports more games.
 - Removed: Record video. Reason: It did not work well.
 - Updated: Default configuration (config.ini). No remapping by default.
 - Updated SDL to version 3.1.6
@@ -20,7 +20,7 @@
 
 ## [1.7.0.0] - 2024-06-25
 - Updated SDL to version 3.0.0
-- Removed: Open Xbox Game Bar when the Xbox/Guide button is pressed. Reason: Unnecessary, use the built-in setting for that instead.
+- Removed: Open Xbox Game Bar when the Xbox/Guide button is pressed. Reason: Unnecessary; use the built-in setting for that instead.
 - Added: Take screenshot using keyboard key and/or controller button
 
 ## [1.6.0.0] - 2022-11-10
