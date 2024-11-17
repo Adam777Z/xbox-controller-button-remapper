@@ -301,7 +301,7 @@ static void key_down(int code)
 	inp.ki.wScan = LOBYTE(scanCode); // hardware scan code for key
 	inp.ki.dwFlags = KEYEVENTF_SCANCODE;
 
-	if ((HIBYTE(scanCode) & 0xE0) != 0) { // Check if extended key
+	if ((HIBYTE(scanCode) & 0xE0) != 0) { // Check whether it is an extended key
 		inp.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
 	}
 
@@ -345,7 +345,7 @@ static void key_up(int code)
 	inp.ki.wScan = LOBYTE(scanCode); // hardware scan code for key
 	inp.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
 
-	if ((HIBYTE(scanCode) & 0xE0) != 0) { // Check if extended key
+	if ((HIBYTE(scanCode) & 0xE0) != 0) { // Check whether it is an extended key
 		inp.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
 	}
 
