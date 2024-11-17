@@ -290,19 +290,19 @@ static void key_down(int code)
 		return;
 	}
 
+	// Source: https://stackoverflow.com/a/76579368
+	//UINT key = MapVirtualKey(code, MAPVK_VK_TO_VSC_EX); // Convert virtual key code to scan code (with extended support)
+	WORD scanCode = LOWORD(MapVirtualKey(code, MAPVK_VK_TO_VSC_EX)); // Convert virtual key code to scan code (with extended support)
+
 	INPUT inp{};
 	inp.type = INPUT_KEYBOARD;
-	inp.ki.wScan = code; // hardware scan code for key
 
-	if (code == 91 || code == 92 || code == 93)
-	{
-		inp.ki.wVk = code; // virtual-key code
-		inp.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_SCANCODE; // 0 for key press
-	}
-	else
-	{
-		inp.ki.wVk = 0; // virtual-key code, doing scan codes instead
-		inp.ki.dwFlags = KEYEVENTF_SCANCODE; // 0 for key press
+	inp.ki.wVk = 0; // virtual key code, doing scan codes instead
+	inp.ki.wScan = LOBYTE(scanCode); // hardware scan code for key
+	inp.ki.dwFlags = KEYEVENTF_SCANCODE;
+
+	if ((HIBYTE(scanCode) & 0xE0) != 0) { // Check if extended key
+		inp.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
 	}
 
 	inp.ki.time = 0;
@@ -334,19 +334,19 @@ static void key_up(int code)
 		return;
 	}
 
+	// Source: https://stackoverflow.com/a/76579368
+	//UINT key = MapVirtualKey(code, MAPVK_VK_TO_VSC_EX); // Convert virtual key code to scan code (with extended support)
+	WORD scanCode = LOWORD(MapVirtualKey(code, MAPVK_VK_TO_VSC_EX)); // Convert virtual key code to scan code (with extended support)
+
 	INPUT inp{};
 	inp.type = INPUT_KEYBOARD;
-	inp.ki.wScan = code; // hardware scan code for key
 
-	if (code == 91 || code == 92 || code == 93)
-	{
-		inp.ki.wVk = code; // virtual-key code
-		inp.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
-	}
-	else
-	{
-		inp.ki.wVk = 0; // virtual-key code, doing scan codes instead
-		inp.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP; // 0 for key press
+	inp.ki.wVk = 0; // virtual key code, doing scan codes instead
+	inp.ki.wScan = LOBYTE(scanCode); // hardware scan code for key
+	inp.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
+
+	if ((HIBYTE(scanCode) & 0xE0) != 0) { // Check if extended key
+		inp.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
 	}
 
 	inp.ki.time = 0;
@@ -677,7 +677,10 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 
 	if (file_key != 0)
 	{
-		UINT file_key_vk = MapVirtualKey(file_key, MAPVK_VSC_TO_VK_EX);
+		// Convert virtual key code to scan code (with extended support) and back to ensure correct mapping
+		UINT file_key_vsc = MapVirtualKey((unsigned int) file_key, MAPVK_VK_TO_VSC_EX);
+		UINT file_key_vk = MapVirtualKey(file_key_vsc, MAPVK_VSC_TO_VK_EX);
+
 		RegisterHotKey(hWnd, OpenFileHotKeyID, MOD_NOREPEAT, file_key_vk);
 	}
 
@@ -687,7 +690,10 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 
 	if (screenshot_key != 0)
 	{
-		UINT screenshot_key_vk = MapVirtualKey(screenshot_key, MAPVK_VSC_TO_VK_EX);
+		// Convert virtual key to scan code (with extended support) and back to ensure correct mapping
+		UINT screenshot_key_vsc = MapVirtualKey((unsigned int) screenshot_key, MAPVK_VK_TO_VSC_EX);
+		UINT screenshot_key_vk = MapVirtualKey(screenshot_key_vsc, MAPVK_VSC_TO_VK_EX);
+
 		RegisterHotKey(hWnd, ScreenshotHotKeyID, MOD_NOREPEAT, screenshot_key_vk);
 	}
 
