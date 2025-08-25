@@ -1,11 +1,11 @@
 # Xbox Controller Button Remapper
 
-A small program that runs in the background and sends the configured key(s)/triggers action when the Xbox button and/or Share button is pressed on the controller.
+A small program that runs in the background and sends the configured key(s)/triggers an action when the Xbox button and/or Share button is pressed on the controller.
 
 Supports capturing screenshots directly without any other program involved so the button prompts do not change in the game after pressing the Xbox/Share button on the controller to take the screenshot.\
 Can also capture screenshots using keys on the keyboard.
 
-Can also open any file using keyboard key and/or controller button so the button prompts do not change in the game.
+Can also open any file using a keyboard key and/or controller button so the button prompts do not change in the game.
 
 Configure the program using the config.ini file.
 
